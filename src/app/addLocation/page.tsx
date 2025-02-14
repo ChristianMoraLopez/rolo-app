@@ -73,6 +73,8 @@ export default function AddLocationPage() {
       router.push('/login'); 
     }
   }, [router]);
+
+  
   
   useEffect(() => {
     if (user && user.role === 'visitor') {
@@ -159,10 +161,9 @@ export default function AddLocationPage() {
                           className="h-full w-full"
                         >
                           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                          <LocationMarker
-                            position={formData.position!}
-                            setPosition={(pos) => setFormData({...formData, position: pos})}
-                          />
+                          <LocationMarker 
+                          position={formData.position || [4.6097, -74.0817]} setPosition={(pos) => setFormData({...formData, position: pos})} />
+
                         </MapContainer>
                       </div>
                       {formData.position && (
