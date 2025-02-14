@@ -1,51 +1,57 @@
-// MapComponent.tsx
 "use client";
 
-import React from 'react';
-import dynamic from 'next/dynamic';
 import { divIcon } from 'leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useEffect, useState } from 'react';
 
-const MapComponent = dynamic(
-  () => import('react-leaflet').then((mod) => {
-    const { MapContainer, TileLayer, Marker, useMapEvents } = mod;
-    
-    return function Map({ position, setPosition }: {
-      position: [number, number];
-      setPosition: (pos: [number, number]) => void;
-    }) {
-      const LocationMarker = () => {
-        const map = useMapEvents({
-          click(e) {
-            const newPos: [number, number] = [e.latlng.lat, e.latlng.lng];
-            setPosition(newPos);
-            map.flyTo(e.latlng, map.getZoom());
-          },
-        });
+export default function MapComponent({
+  position,
+  setPosition
+}: {
+  position: [number, number] | null;
+  setPosition: (pos: [number, number]) => void;
+}) {
+  const [isClient, setIsClient] = useState(false);
 
-        const markerIcon = divIcon({
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
+  const LocationMarker = () => {
+    const map = useMapEvents({
+      click(e) {
+        setPosition([e.latlng.lat, e.latlng.lng]);
+        map.flyTo(e.latlng, map.getZoom());
+      },
+    });
+
+    return position ? (
+      <Marker 
+        position={position}
+        icon={divIcon({
           html: `<div class="flex items-center justify-center w-8 h-8 bg-verdeprimary rounded-full border-2 border-white shadow-lg">
             <div class="w-2 h-2 bg-white rounded-full"></div>
           </div>`,
           className: 'custom-marker'
-        });
+        })}
+      />
+    ) : null;
+  };
 
-        return position ? <Marker position={position} icon={markerIcon} /> : null;
-      };
-
-      return (
-        <MapContainer
-          center={position}
-          zoom={11}
-          className="h-full w-full"
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <LocationMarker />
-        </MapContainer>
-      );
-    };
-  }),
-  { ssr: false }
-);
-
-export default MapComponent;
+  return (
+    <MapContainer
+      center={[4.6097, -74.0817]}
+      zoom={11}
+      className="h-full w-full"
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      />
+      <LocationMarker />
+    </MapContainer>
+  );
+}
