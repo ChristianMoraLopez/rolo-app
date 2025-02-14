@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import  Image  from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Menu, UserCircle2, LogOut, Compass, Users } from 'lucide-react'
+import { Menu, UserCircle2, LogOut, Compass, Users, MapPin } from 'lucide-react'
 import { User } from '@/core/entities/types'
 import { toast } from "sonner"
 
@@ -108,7 +108,10 @@ export function Navbar() {
           <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
             <NavLink href="/explore" icon={Compass}>Explorar</NavLink>
             {user && (
+              <>
               <NavLink href="/bogotanos" icon={Users}>Bogotanos</NavLink>
+              <NavLink href="/addLocation" icon={MapPin}>Agregar Ubicación</NavLink>
+            </>      
             )}
           </nav>
         </div>
