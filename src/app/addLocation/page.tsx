@@ -10,9 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from 'next/image';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { divIcon } from 'leaflet';
+import dynamic from 'next/dynamic';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,39 +22,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Construction, Coffee } from 'lucide-react';
 
-interface LocationMarkerProps {
-    position: [number, number];
-    setPosition: (pos: [number, number]) => void;
-  }
-
-  const LocationMarker: React.FC<LocationMarkerProps> = ({ position, setPosition }) => {
-    const map = useMapEvents({
-      click(e) {
-        setPosition([e.latlng.lat, e.latlng.lng]);
-        map.flyTo(e.latlng, map.getZoom());
-      },
-    });
-
-  return position ? (
-    <Marker 
-      position={position}
-      icon={divIcon({
-        html: `<div class="flex items-center justify-center w-8 h-8 bg-verdeprimary rounded-full border-2 border-white shadow-lg">
-          <div class="w-2 h-2 bg-white rounded-full"></div>
-        </div>`,
-        className: 'custom-marker'
-      })}
-    />
-  ) : null;
-};
+// Dynamically import the Map component with no SSR
+const Map = dynamic(() => import('@components/features/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full flex items-center justify-center bg-gray-100 rounded-lg">
+      <div className="animate-pulse">Loading Map...</div>
+    </div>
+  )
+});
 
 export default function AddLocationPage() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    position: null as [number, number] | null,
+    position: [4.6097, -74.0817] as [number, number],
     sensations: [] as string[],
     smells: [] as string[],
     images: [] as { src: string; width: number; height: number }[],
@@ -65,20 +48,20 @@ export default function AddLocationPage() {
   const [newSmell, setNewSmell] = useState('');
   const [showDialog, setShowDialog] = useState(false);
 
+  // Handle client-side only code
   useEffect(() => {
+    setIsClient(true);
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      router.push('/login'); 
+      router.push('/login');
     }
   }, [router]);
 
-  
-  
   useEffect(() => {
     if (user && user.role === 'visitor') {
-      router.push('/login'); 
+      router.push('/login');
     }
   }, [user, router]);
 
@@ -114,6 +97,10 @@ export default function AddLocationPage() {
       });
     }
   };
+
+  if (!isClient) {
+    return null; // or a loading state
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-verdereducido/10">
@@ -155,16 +142,7 @@ export default function AddLocationPage() {
 
                     <div className="space-y-4">
                       <div className="relative h-[300px] rounded-lg overflow-hidden border-2 border-verdeprimary/20">
-                        <MapContainer
-                          center={[4.6097, -74.0817]}
-                          zoom={11}
-                          className="h-full w-full"
-                        >
-                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                          <LocationMarker 
-                          position={formData.position || [4.6097, -74.0817]} setPosition={(pos) => setFormData({...formData, position: pos})} />
-
-                        </MapContainer>
+                      <Map position={formData.position} setPosition={(pos) => setFormData({...formData, position: pos})} />
                       </div>
                       {formData.position && (
                         <div className="text-sm text-center text-foreground/60">
