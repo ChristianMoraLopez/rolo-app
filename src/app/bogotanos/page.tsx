@@ -98,7 +98,7 @@ const SocialFeed = () => {
         content: "¡Increíble tarde en el Parque de los Novios! ¿Alguien más para un picnic este fin de semana? 🌳☀️",
         likes: 24,
         comments: 8,
-        image: "/posts/parque.jpg",
+        image: "https://images.pexels.com/photos/30722079/pexels-photo-30722079.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
         createdAt: new Date(), // Agrega fecha de creación
       },
       {
@@ -111,6 +111,7 @@ const SocialFeed = () => {
           location: "Usaquén",
         },
         content: "Descubrí este nuevo café en la Zona G. ¡La mejor avena que he probado! ¿Recomendaciones de otros cafés por la zona? ☕",
+        image:"https://images.pexels.com/photos/30689109/pexels-photo-30689109/free-photo-of-mujer-joven-leyendo-en-un-cafe-de-lagos.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
         likes: 15,
         comments: 12,
         createdAt: new Date(), // Agrega fecha de creación
