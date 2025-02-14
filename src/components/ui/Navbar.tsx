@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -7,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import {
@@ -15,15 +15,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import  Image  from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Menu, UserCircle2, LogOut, Home, Compass, Users } from 'lucide-react'
+import { Menu, UserCircle2, LogOut, Compass, Users } from 'lucide-react'
 import { User } from '@/core/entities/types'
 import { toast } from "sonner"
+
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+}
 
 export function Navbar() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   useEffect(() => {
     const checkUser = () => {
@@ -52,21 +60,16 @@ export function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('currentUser')
     setUser(null)
+    setIsSheetOpen(false)
     toast.success('¡Hasta pronto!')
     router.push('/')
   }
 
-  // Definimos el tipo para las props
-interface NavLinkProps {
-  href: string; // href es una cadena (string)
-  children: React.ReactNode; // children puede ser cualquier elemento válido de React
-  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>; // icon es un componente de tipo SVG (opcional)
-}
-
-const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
+  const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
     <Link 
       href={href}
       className="relative flex items-center text-foreground/70 transition-all duration-300 hover:text-moradoprimary group"
+      onClick={() => setIsSheetOpen(false)}
     >
       {Icon && <Icon className="w-4 h-4 mr-2 md:hidden lg:block" />}
       <span className="text-sm">{children}</span>
@@ -75,22 +78,31 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
   )
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-      scrolled 
-        ? "border-b border-moradoclaro/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg"
-        : "bg-transparent"
-    }`}>
-      <div className="container flex h-16 md:h-20 items-center px-4 md:px-6">
+    <header 
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        scrolled 
+          ? "border-b border-moradoclaro/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="container flex h-16 md:h-20 items-center  px-4 md:px-6">
         <div className="flex items-center flex-1">
-          <Link 
-            href="/" 
-            className="flex items-center space-x-2 group mr-6 md:mr-12"
-          >
-            <Home className="h-5 w-5 md:h-6 md:w-6 text-moradoprimary transition-transform duration-300 group-hover:scale-110" />
-            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-azulprimary via-moradoprimary to-azulsecundario bg-clip-text text-transparent transform transition-all duration-300 group-hover:scale-105">
-              Sensaciones Bogotá
-            </span>
-          </Link>
+          
+                              <Link 
+                                href="/" 
+                                className="flex items-center space-x-2  pl-16 group mr-6 md:mr-12"
+                              >
+                                <Image
+                                    src="/images/bogotabw.png"
+                                    alt="Rolo App Logo"
+                                    width={64}
+                                    height={64}
+                                    className="h-12 w-12 md:h-16 md:w-16 transition-transform duration-300 group-hover:scale-110 filter hover:brightness-75"
+                                  />
+                                <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-azulprimary via-moradoprimary to-azulsecundario bg-clip-text text-transparent transform transition-all duration-300 group-hover:scale-105">
+                                  Rolo App
+                                </span>
+                              </Link>
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
@@ -115,7 +127,11 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 md:h-10 md:w-10 rounded-full">
+                    <Button 
+                      variant="ghost" 
+                      className="relative h-8 w-8 md:h-10 md:w-10 rounded-full"
+                      aria-label="Menú de usuario"
+                    >
                       <Avatar className="h-8 w-8 md:h-10 md:w-10 ring-2 ring-offset-2 ring-moradoprimary/20 transition-all duration-300 hover:ring-moradoprimary">
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback>
@@ -159,25 +175,29 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
           </nav>
 
           {/* Mobile Navigation */}
-          <Sheet>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button 
                 variant="ghost" 
                 className="md:hidden hover:bg-moradoclaro/10"
                 size="icon"
+                aria-label="Abrir menú de navegación"
               >
                 <Menu className="h-5 w-5 text-foreground/70 hover:text-moradoprimary" />
-                <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent 
               side="right" 
               className="w-full max-w-xs border-l border-moradoclaro/10 bg-gradient-to-b from-background to-moradoclaro/5"
             >
+              <SheetHeader>
+                <SheetTitle>Menú de navegación</SheetTitle>
+              </SheetHeader>
               <nav className="flex flex-col space-y-6 mt-6">
                 <Link 
                   href="/explore" 
                   className="flex items-center text-foreground/60 transition-all duration-300 hover:text-moradoprimary text-base font-medium transform hover:translate-x-2"
+                  onClick={() => setIsSheetOpen(false)}
                 >
                   <Compass className="mr-2 h-5 w-5" />
                   Explorar
@@ -186,6 +206,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
                   <Link 
                     href="/bogotanos" 
                     className="flex items-center text-foreground/60 transition-all duration-300 hover:text-moradoprimary text-base font-medium transform hover:translate-x-2"
+                    onClick={() => setIsSheetOpen(false)}
                   >
                     <Users className="mr-2 h-5 w-5" />
                     Bogotanos
@@ -207,6 +228,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
                       <Link 
                         href="/admin/dashboard"
                         className="flex items-center text-foreground/60 transition-all duration-300 hover:text-moradoprimary text-base font-medium transform hover:translate-x-2"
+                        onClick={() => setIsSheetOpen(false)}
                       >
                         Dashboard
                       </Link>
@@ -224,12 +246,14 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, icon: Icon }) => (
                     <Link 
                       href="/login" 
                       className="flex items-center text-foreground/60 transition-all duration-300 hover:text-moradoprimary text-base font-medium transform hover:translate-x-2"
+                      onClick={() => setIsSheetOpen(false)}
                     >
                       Iniciar Sesión
                     </Link>
                     <Link 
                       href="/register" 
                       className="inline-flex h-10 items-center justify-center rounded-md bg-gradient-to-r from-moradoprimary to-azulsecundario px-4 text-sm font-medium text-white transition-all duration-300 hover:from-moradohover hover:to-azulsechover hover:shadow-lg hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moradoprimary focus-visible:ring-offset-2"
+                      onClick={() => setIsSheetOpen(false)}
                     >
                       Registrarse
                     </Link>
