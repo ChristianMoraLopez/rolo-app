@@ -5,9 +5,10 @@ import { useState } from 'react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  className?: string;
 }
 
-export function SearchBar({ onSearch }: SearchBarProps) {
+export function SearchBar({ onSearch, className = "" }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = () => {
@@ -19,9 +20,8 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       handleSearch();
     }
   };
-
   return (
-    <div className="max-w-2xl mx-auto mb-8">
+    <div className={`max-w-2xl mx-auto mb-8 ${className}`}>
       <div className="flex gap-2">
         <input
           type="text"
