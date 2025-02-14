@@ -10,9 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
-import { Construction, Coffee } from 'lucide-react';
-import { divIcon } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,72 +21,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Construction, Coffee } from 'lucide-react';
+import MapComponent from '@components/features/MapComponent';
 
-// Dynamic imports for map components
-const Map = dynamic(
-  () => import('react-leaflet').then((mod) => {
-    const { MapContainer, TileLayer, Marker, useMapEvents } = mod;
-    
-    const LocationMarkerComponent = ({ position, setPosition }: {
-      position: [number, number];
-      setPosition: (pos: [number, number]) => void;
-    }) => {
-      const map = useMapEvents({
-        click(e) {
-          const newPos: [number, number] = [e.latlng.lat, e.latlng.lng];
-          setPosition(newPos);
-          map.flyTo(e.latlng, map.getZoom());
-        },
-      });
 
-      const markerIcon = divIcon({
-        html: `<div class="flex items-center justify-center w-8 h-8 bg-verdeprimary rounded-full border-2 border-white shadow-lg">
-          <div class="w-2 h-2 bg-white rounded-full"></div>
-        </div>`,
-        className: 'custom-marker'
-      });
-
-      return position ? <Marker position={position} icon={markerIcon} /> : null;
-    };
-
-    const MapComponent = ({ position, setPosition }: {
-      position: [number, number];
-      setPosition: (pos: [number, number]) => void;
-    }) => {
-      return (
-        <MapContainer
-          center={position}
-          zoom={11}
-          className="h-full w-full"
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <LocationMarkerComponent position={position} setPosition={setPosition} />
-        </MapContainer>
-      );
-    };
-
-    return MapComponent;
-  }),
-  { ssr: false }
-);
-
-// Custom hook for handling hydration
-const useHasMounted = () => {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  return hasMounted;
-};
+ 
 
 export default function AddLocationPage() {
   const router = useRouter();
-  const hasMounted = useHasMounted();
   const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    position: [4.6097, -74.0817] as [number, number],
+    position: null as [number, number] | null,
     sensations: [] as string[],
     smells: [] as string[],
     images: [] as { src: string; width: number; height: number }[],
@@ -97,19 +43,18 @@ export default function AddLocationPage() {
   const [showDialog, setShowDialog] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        router.push('/login');
-      }
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      router.push('/login'); 
     }
   }, [router]);
-
+  
+  
   useEffect(() => {
     if (user && user.role === 'visitor') {
-      router.push('/login');
+      router.push('/login'); 
     }
   }, [user, router]);
 
@@ -145,10 +90,6 @@ export default function AddLocationPage() {
       });
     }
   };
-
-  if (!hasMounted) {
-    return null; // or a loading spinner
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-verdereducido/10">
@@ -190,8 +131,8 @@ export default function AddLocationPage() {
 
                     <div className="space-y-4">
                       <div className="relative h-[300px] rounded-lg overflow-hidden border-2 border-verdeprimary/20">
-                      <Map
-                          position={formData.position}
+                      <MapComponent
+                          position={formData.position!}
                           setPosition={(pos) => setFormData({...formData, position: pos})}
                         />
                       </div>

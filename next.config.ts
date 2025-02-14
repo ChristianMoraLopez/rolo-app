@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   images: {
     domains: [
       'media.discordapp.net',
@@ -10,6 +11,16 @@ const nextConfig = {
       'previews.dropbox.com'
     ],
   },
-}
+  // Mueve appDir fuera de experimental
+  appDir: true,
+  experimental: {
+    // Otras configuraciones experimentales (si las tienes)
+  },
+  webpack: (config) => {
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = { fs: false, path: false };
+    return config;
+  },
+};
 
-module.exports = nextConfig
+export default nextConfig;
