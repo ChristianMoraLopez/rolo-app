@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
-
+import { divIcon } from 'leaflet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +23,58 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Construction, Coffee } from 'lucide-react';
-import MapComponent from '@components/features/MapComponent';
+
+// Dynamically import MapContainer, TileLayer, and Marker with SSR disabled
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
 
 
- 
+interface LocationMarkerProps {
+  position: [number, number];
+  setPosition: (pos: [number, number]) => void;
+}
 
+
+// Correct way to handle useMapEvents with dynamic import
+const LocationMarker = dynamic(
+    () => import('react-leaflet').then((mod) => {
+      const { useMapEvents } = mod;
+      
+      const LocationMarkerComponent = ({ position, setPosition }: LocationMarkerProps) => {
+        const map = useMapEvents({
+          click(e) {
+            setPosition([e.latlng.lat, e.latlng.lng]);
+            map.flyTo(e.latlng, map.getZoom());
+          },
+        });
+  
+        return position ? (
+          <Marker 
+            position={position}
+            icon={divIcon({
+              html: `<div class="flex items-center justify-center w-8 h-8 bg-verdeprimary rounded-full border-2 border-white shadow-lg">
+                <div class="w-2 h-2 bg-white rounded-full"></div>
+              </div>`,
+              className: 'custom-marker'
+            })}
+          />
+        ) : null;
+      };
+      
+      return LocationMarkerComponent;
+    }),
+    { ssr: false }
+  );
 export default function AddLocationPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -50,7 +98,6 @@ export default function AddLocationPage() {
       router.push('/login'); 
     }
   }, [router]);
-  
   
   useEffect(() => {
     if (user && user.role === 'visitor') {
@@ -131,10 +178,19 @@ export default function AddLocationPage() {
 
                     <div className="space-y-4">
                       <div className="relative h-[300px] rounded-lg overflow-hidden border-2 border-verdeprimary/20">
-                      <MapComponent
-                          position={formData.position!}
-                          setPosition={(pos) => setFormData({...formData, position: pos})}
-                        />
+                        {typeof window !== 'undefined' && (
+                          <MapContainer
+                            center={[4.6097, -74.0817]}
+                            zoom={11}
+                            className="h-full w-full"
+                          >
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <LocationMarker
+                               position={formData.position!}
+                               setPosition={(pos) => setFormData({...formData, position: pos})}
+                            />
+                          </MapContainer>
+                        )}
                       </div>
                       {formData.position && (
                         <div className="text-sm text-center text-foreground/60">
