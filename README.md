@@ -10,7 +10,7 @@ Primero, asegúrate de tener [Node.js](https://nodejs.org/) instalado. Si no lo 
 1. **Clona el repositorio:**
 
    ```bash
-   git clone https://github.com/tu-usuario/tu-repositorio.git
+   git clone https://github.com/ChristianMoraLopez/rolo-app.git
    cd tu-repositorio
    ```
 
@@ -86,5 +86,12 @@ Si encuentras algún problema, no entres en pánico. Aquí tienes algunas cosas 
 ## 🎉 ¡Gracias!
 
 ¡Gracias por usar este proyecto! Si te gusta, no olvides darle una estrella ⭐ en GitHub. Y si no te gusta, bueno... ¡también puedes darnos feedback! 😅
+
+Eh... y por ahora, puedes ver el front en:
+
+https://rolo-app.vercel.app/
+
+No sirve para nada salvo para verse lindo, pero, el que es lindo es lindo. 
+
 
 Nota: Este proyecto fue hecho con ❤️ en Bogotá. ¡Disfruta y comparte tus mejores momentos en la ciudad!
