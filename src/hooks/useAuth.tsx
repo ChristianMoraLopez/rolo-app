@@ -33,20 +33,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const storedUser = localStorage.getItem('currentUser');
         const storedToken = localStorage.getItem('token');
-        console.log('storedUser:', storedUser);
+        
+        console.log('Stored user:', storedUser); // Para depuración
+        console.log('Stored token:', storedToken); // Para depuración
+        
         if (storedUser && storedToken) {
           setUser(JSON.parse(storedUser));
-          
         } else {
           setUser(null);
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('token');
         }
       } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('currentUser');
         localStorage.removeItem('token');
-        setUser(null); // Asegúrate de establecer el usuario como null en caso de error
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -71,11 +71,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<AuthResponse> => {
     try {
       const response = await authService.login(email, password);
-      console.log('Login successful:', response); // Add this line
-      setUserData(response.user);
-      localStorage.setItem('token', response.token); 
-      toast.success('¡Bienvenido de nuevo!');
-      return response;
+      console.log('Login response:', response); // Para depuración
+      
+      // Asegúrate de que response.user existe antes de guardarlo
+      if (response && response.user && response.token) {
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+        localStorage.setItem('token', response.token);
+        
+        // Establecer cookie para el middleware
+        document.cookie = `currentUser=${JSON.stringify(response.user)}; path=/; max-age=86400`;
+        setUser(response.user);
+        
+        toast.success('¡Bienvenido de nuevo!');
+        return response;
+      } else {
+        throw new Error('Respuesta de login incompleta');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error en el inicio de sesión');
       throw error;

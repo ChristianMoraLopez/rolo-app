@@ -21,7 +21,9 @@ export const authService = {
       throw new Error(error.message || 'Error en el inicio de sesión');
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('Raw response data:', data); // Para depuración
+    return data;
   },
 
   register: async (email: string, password: string, name: string, additionalData = {}): Promise<AuthResponse> => {

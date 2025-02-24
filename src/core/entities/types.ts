@@ -3,7 +3,7 @@ export type AuthProvider = 'email' | 'google';
 export type Role = 'visitor' | 'registered' | 'subscriber' | 'admin';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   password?: string; 
@@ -38,7 +38,7 @@ export interface Comment {
 }
 
 // Nuevo tipo PostAuthor que extiende de User pero solo incluye los campos necesarios para la vista
-export type PostAuthor = Pick<User, 'id' | 'name' | 'avatar'> & {
+export type PostAuthor = Pick<User, '_id' | 'name' | 'avatar'> & {
   location: string; // Localidad en Bogotá
 };
 
