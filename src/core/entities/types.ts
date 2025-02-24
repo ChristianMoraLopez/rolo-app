@@ -1,7 +1,6 @@
-// src/core/entities/types.ts
+export type AuthProvider = 'email' | 'google';
 
 export type Role = 'visitor' | 'registered' | 'subscriber' | 'admin';
-
 
 export interface User {
   id: string;
@@ -11,6 +10,8 @@ export interface User {
   role: Role;
   avatar?: string;
   location?: string; 
+  authProvider: AuthProvider;
+  googleId?: string;
   createdAt: Date;
 }
 

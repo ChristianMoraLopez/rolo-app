@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
 import React, { useState } from 'react';
+import GoogleAuthButton from "@/components/ui/button-google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -14,90 +15,64 @@ import {
 } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
-import { mockUsers } from '@/infrastructure/mocks/data';
-import { toast } from "sonner";
+import { useRouter } from 'next/navigation';
+import { authService } from '@/core/services/auth';
 
-interface LoginError {
-  title: string;
-  message: string;
-}
-
-const LoginPage = () => {
+export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<LoginError | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('Iniciando proceso de login...'); // Debug
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log('Buscando usuario:', email); // Debug
-      const user = mockUsers.find(u => u.email === email);
-      console.log('Usuario encontrado:', user); // Debug
-
-      if (!user) {
-        setError({
-          title: 'Usuario no encontrado',
-          message: 'El correo electrónico no está registrado en nuestro sistema.'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      if (user.password !== password) {
-        setError({
-          title: 'Contraseña incorrecta',
-          message: 'La contraseña ingresada no es correcta.'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Login exitoso
-      const userWithoutPassword = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        location: user.location,
-        createdAt: user.createdAt
-      };
-
-      console.log('Guardando usuario en localStorage:', userWithoutPassword); // Debug
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      
-      // Disparar evento de storage manualmente para actualizar otros componentes
-      window.dispatchEvent(new Event('storage'));
-      
-      toast.success(`¡Bienvenido, ${user.name}!`);
-
-      // Usamos window.location para forzar un refresh completo
-      if (user.role === 'admin') {
-        window.location.href = '/admin/dashboard';
+      const data = await authService.login(email, password);
+      // Save token and user data to localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      // Redirect to home or dashboard
+      router.push('/');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
-        window.location.href = '/bogotanos';
+        setError('An error occurred during login.');
       }
-
-    } catch (err) {
-      console.error('Error en login:', err); // Debug
-      setError({
-        title: 'Error de conexión',
-        message: 'Hubo un problema al intentar iniciar sesión. Por favor, intenta de nuevo.'
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Add the Google Login handler
+  const handleGoogleLogin = async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await authService.googleLogin(token);
+      
+      // Save token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Redirect to home or dashboard
+      router.push('/');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Error al iniciar sesión con Google');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  
   return (
     <div className="min-h-screen flex items-center justify-center bg-background/95 p-4">
       <Card className="w-full max-w-md border-moradoclaro/20">
@@ -137,7 +112,7 @@ const LoginPage = () => {
                 />
               </div>
             </div>
-            <Button 
+            <Button
               type="submit"
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-moradoprimary to-azulsecundario hover:from-moradohover hover:to-azulsechover text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
@@ -149,7 +124,7 @@ const LoginPage = () => {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-foreground/60">
             ¿Olvidaste tu contraseña?{' '}
-            <Link 
+            <Link
               href="/reset-password"
               className="text-moradoprimary hover:text-moradohover transition-colors duration-300"
             >
@@ -164,8 +139,16 @@ const LoginPage = () => {
               <span className="bg-background px-2 text-foreground/60">O</span>
             </div>
           </div>
-          <Button 
-            variant="outline" 
+
+          <GoogleAuthButton 
+            variant="login" 
+            isLoading={isLoading} 
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          />
+
+          <Button
+            variant="outline"
             asChild
             className="w-full border-moradoclaro/20 hover:bg-moradoclaro/10 hover:text-moradoprimary transition-all duration-300"
           >
@@ -177,19 +160,20 @@ const LoginPage = () => {
         </CardFooter>
       </Card>
 
+      {/* Error Dialog */}
       <AlertDialog open={!!error} onOpenChange={() => setError(null)}>
         <AlertDialogContent className="bg-background border border-moradoclaro/20">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rojoprimary">
               <AlertCircle className="h-6 w-6" />
-              {error?.title}
+              Error
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {error?.message}
+              {error}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button 
+            <Button
               onClick={() => setError(null)}
               className="bg-gradient-to-r from-moradoprimary to-azulsecundario hover:from-moradohover hover:to-azulsechover text-white"
             >
@@ -200,6 +184,4 @@ const LoginPage = () => {
       </AlertDialog>
     </div>
   );
-};
-
-export default LoginPage;
+}
