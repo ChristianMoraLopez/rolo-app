@@ -43,16 +43,21 @@ export type PostAuthor = Pick<User, '_id' | 'name' | 'avatar'> & {
 };
 
 // Nuevo tipo Post
-export interface Post {
-  id: string;
+export interface PostType {
+  _id: string; // Unique identifier
   title: string;
-  author: PostAuthor;
   content: string;
+  author: {
+    _id: string;
+    name: string;
+    avatar: string;
+    location: string;
+  };
   image?: string;
   likes: number;
   comments: number;
   createdAt: Date;
-  location?: Location; // Referencia opcional a una ubicación
-  liked?: boolean;     // Estado de si el usuario actual dio like
-  shared?: number;     // Número de veces compartido
+  location?: string;
+  shared: number;
+  liked?: boolean;
 }
