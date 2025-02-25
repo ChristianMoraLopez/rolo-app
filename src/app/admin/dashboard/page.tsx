@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock data for the activity chart
 const activityData = [
@@ -40,6 +41,7 @@ const notifications = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
@@ -65,7 +67,7 @@ export default function DashboardPage() {
   const activeUsers = Math.floor(totalUsers * 0.75);
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+    logout();
     window.dispatchEvent(new Event('storage'));
     toast.success('Sesión cerrada correctamente');
     router.push('/');

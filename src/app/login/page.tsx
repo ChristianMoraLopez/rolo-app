@@ -16,7 +16,7 @@ import {
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/core/services/auth';
+import { useAuth } from '@/hooks/useAuth'; // Importamos el hook useAuth
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +24,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Utilizamos el hook useAuth en lugar de acceder directamente al servicio
+  const { login, googleLogin } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,36 +34,32 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const data = await authService.login(email, password);
-      // Save token and user data to localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      // Redirect to home or dashboard
+      // Usamos la función login del contexto que ya maneja todo el proceso
+      await login(email, password);
+      
+      // Redirigimos al home
       router.push('/');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('An error occurred during login.');
+        setError('Ha ocurrido un error durante el inicio de sesión.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Add the Google Login handler
+  // Modificamos el handler de login con Google
   const handleGoogleLogin = async (token: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await authService.googleLogin(token);
+      // Usamos la función googleLogin del contexto que ya maneja todo el proceso
+      await googleLogin(token);
       
-      // Save token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Redirect to home or dashboard
+      // Redirigimos al home
       router.push('/');
     } catch (error: unknown) {
       if (error instanceof Error) {

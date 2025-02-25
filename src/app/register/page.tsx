@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,7 @@ import {
 import Link from 'next/link';
 import { Mail, Lock, User as UserIcon, AlertCircle, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { authService, setUserCookie } from '@/core/services/auth';
+import { useAuth } from '@/hooks/useAuth'; // Importamos el hook useAuth
 import GoogleAuthButton from "@/components/ui/button-google";
 
 export default function RegisterPage() {
@@ -26,24 +25,18 @@ export default function RegisterPage() {
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { register, googleLogin: googleRegister } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
+  
     try {
-      // Agregamos authProvider='email' y el campo location
-      const data = await authService.register(email, password, name, {
-        authProvider: 'email',
-        location: location || undefined,
-        role: 'registered' // Por defecto registramos como usuario registrado
-      });
+      // Pass additional data (like location) to the register function
+      await register(email, password, name, { location });
       
-      // Save token and user data
-      localStorage.setItem('token', data.token);
-      setUserCookie(data.user);
-      // Redirect to home or dashboard
+      // Redirigimos al home
       router.push('/');
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -52,37 +45,31 @@ export default function RegisterPage() {
         setError('Error en el registro. Por favor intenta de nuevo.');
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Reset loading state
     }
   };
 
-  const handleGoogleLogin = async (token: string) => {
+  const handleGoogleRegister = async (token: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Agregamos información adicional para el registro con Google
-      const data = await authService.googleLogin(token, {
-        authProvider: 'google',
-        location: location || undefined,
-        role: 'registered'
-      });
+      // Usamos la función googleLogin del contexto
+      await googleRegister(token);
       
-      // Save token and user data
-      localStorage.setItem('token', data.token);
-      setUserCookie(data.user);
-      // Redirect to home or dashboard
+      // Redirigimos al home
       router.push('/');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('Error al iniciar sesión con Google');
+        setError('Error al registrarse con Google');
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background/95 p-4">
@@ -168,7 +155,7 @@ export default function RegisterPage() {
             </div>
 
             <GoogleAuthButton 
-              onClick={handleGoogleLogin}
+              onClick={handleGoogleRegister}
               disabled={isLoading}
               className="w-full"
             />
