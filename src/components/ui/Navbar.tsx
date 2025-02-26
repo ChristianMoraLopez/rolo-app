@@ -122,7 +122,7 @@ export function Navbar() {
                       aria-label="Menú de usuario"
                     >
                       <Avatar className="h-8 w-8 md:h-10 md:w-10 ring-2 ring-offset-2 ring-moradoprimary/20 transition-all duration-300 hover:ring-moradoprimary">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={user?.avatar} alt={user.name} />
                         <AvatarFallback>
                           <UserCircle2 className="h-5 w-5 md:h-6 md:w-6 text-moradoprimary" />
                         </AvatarFallback>
@@ -220,7 +220,7 @@ export function Navbar() {
                   <>
                     <div className="flex items-center space-x-4 px-2">
                       <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-moradoprimary/20">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={user?.avatar} alt={user.name} />
                         <AvatarFallback>
                           <UserCircle2 className="h-6 w-6 text-moradoprimary" />
                         </AvatarFallback>

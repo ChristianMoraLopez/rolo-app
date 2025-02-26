@@ -70,7 +70,7 @@ export function CommentSection({ comments,  }: CommentSectionProps) {
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-4">
               <Avatar>
-                <AvatarImage src={comment.user.avatar} />
+                <AvatarImage src={comment.user?.avatar} />
                 <AvatarFallback>
                   {comment.user.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
