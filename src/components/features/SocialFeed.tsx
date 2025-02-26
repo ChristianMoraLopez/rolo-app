@@ -42,16 +42,16 @@ const Post: React.FC<PostProps> = ({ post }) => {
         <CardHeader className="space-y-0 pb-2">
           <div className="flex items-center space-x-4">
             <Avatar className="h-12 w-12 border-2 border-moradoclaro/30">
-              <AvatarImage src={post.author.avatar} />
+              <AvatarImage src={post.author?.avatar || ''} />
               <AvatarFallback>
                 <UserCircle2 className="h-12 w-12 text-moradoprimary" />
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="font-semibold text-foreground text-lg">{post.author.name}</div>
+              <div className="font-semibold text-foreground text-lg">{post.author.name  || 'Usuario desconocido'}</div>
               <div className="flex items-center text-sm text-foreground/60">
                 <MapPin className="mr-1 h-3 w-3" />
-                {post.author.location}
+                {post.author.location || 'Ubicación desconocida'}
                 <span className="mx-2">•</span>
                 <span className="text-xs">hace 2 horas</span>
               </div>
