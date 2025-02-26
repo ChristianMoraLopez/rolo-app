@@ -48,10 +48,10 @@ const Post: React.FC<PostProps> = ({ post }) => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="font-semibold text-foreground text-lg">{post.author.name  || 'Usuario desconocido'}</div>
+              <div className="font-semibold text-foreground text-lg">{post.author?.name  || 'Usuario desconocido'}</div>
               <div className="flex items-center text-sm text-foreground/60">
                 <MapPin className="mr-1 h-3 w-3" />
-                {post.author.location || 'Ubicación desconocida'}
+                {post.author?.location || 'Ubicación desconocida'}
                 <span className="mx-2">•</span>
                 <span className="text-xs">hace 2 horas</span>
               </div>
