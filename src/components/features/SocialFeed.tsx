@@ -32,14 +32,10 @@ const Post = ({ post }: { post: PostType }) => {
   const handleLike = async () => {
     try {
       await postService.likePost(post._id);
-      
-      // Actualizar UI inmediatamente (optimistic update)
-      // La actualización real vendrá a través del socket
       setLiked(!liked);
-      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+      setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
     } catch (error) {
       console.error('Error al dar like al post:', error);
-      // Revertir cambios optimistas en caso de error
       setLiked(liked);
       setLikeCount(post.likes || 0);
     }
@@ -48,17 +44,12 @@ const Post = ({ post }: { post: PostType }) => {
   // Función para enviar un comentario
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!commentText.trim()) return;
-    
+
     setIsSubmittingComment(true);
-    
     try {
       await postService.commentPost(post._id, commentText);
-      
-      // Limpiar el campo después de enviar
       setCommentText('');
-      // El socket manejará la actualización del contador de comentarios
     } catch (error) {
       console.error('Error al comentar el post:', error);
     } finally {
@@ -175,11 +166,39 @@ const Post = ({ post }: { post: PostType }) => {
                 </Button>
               </form>
               
-              {/* Aquí se mostrarían los comentarios si tienes la información */}
-              <div className="text-center text-sm text-foreground/60 py-4">
-                <p>Los comentarios se mostrarían aquí</p>
-                <p className="text-xs">Para implementar completamente esta funcionalidad, necesitarías crear un endpoint que devuelva los comentarios para cada post.</p>
-              </div>
+              {/* Lista de comentarios */}
+              {post.commentsList && post.commentsList.length > 0 ? (
+                <div className="space-y-4">
+                  {post.commentsList.map((comment, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={comment.author?.avatar || ''} />
+                        <AvatarFallback>
+                          <UserCircle2 className="h-8 w-8 text-moradoprimary" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">
+                          {comment.author?.name || 'Usuario desconocido'}
+                        </div>
+                        <p className="text-foreground/80 text-sm">{comment.content}</p>
+                        <div className="text-xs text-foreground/60">
+                          {new Date(comment.createdAt).toLocaleString('es-CO', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-sm text-foreground/60 py-4">
+                  <p>No hay comentarios aún.</p>
+                </div>
+              )}
             </motion.div>
           )}
         </CardFooter>

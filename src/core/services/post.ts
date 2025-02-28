@@ -62,27 +62,6 @@ export const postService = {
     }
   },
 
-  // Dar like a un post
-  likePost: async (postId: string): Promise<void> => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/posts/${postId}/like`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al dar like al post');
-      }
-    } catch (error) {
-      console.error('Error en postService.likePost:', error);
-      throw error;
-    }
-  },
-
   // Comentar un post
   commentPost: async (postId: string, content: string): Promise<void> => {
     try {
@@ -104,4 +83,26 @@ export const postService = {
       throw error;
     }
   },
+
+  // Dar like a un post
+  likePost: async (postId: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al dar like al post');
+      }
+    } catch (error) {
+      console.error('Error en postService.likePost:', error);
+      throw error;
+    }
+  },
+
 };
