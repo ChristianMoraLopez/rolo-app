@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect,useCallback  } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +15,6 @@ import { postService } from '@/core/services/post';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
-// Configuración del cliente socket.io
 // Configuración del cliente socket.io
 const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
   path: '/socket.io',
@@ -415,7 +414,7 @@ const SocialFeed = () => {
   const [socketStatus, setSocketStatus] = useState<string>('Desconectado');
 
   // Función para cargar posts
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       const fetchedPosts = await postService.getPosts();
       const sortedPosts = [...fetchedPosts].sort((a, b) => {
@@ -431,10 +430,10 @@ const SocialFeed = () => {
     } catch (error) {
       console.error('Error al obtener los posts:', error);
     }
-  };
+  }, []);
 
-  // Configurar socket.io al cargar el componente
-  useEffect(() => {
+
+useEffect(() => {
     // Cargar posts al iniciar
     fetchPosts();
 
@@ -449,55 +448,52 @@ const SocialFeed = () => {
     const pingInterval = setInterval(pingServer, 30000); // 30 segundos
 
     // Manejar conexión
-    socket.on('connect', () => {
+    const handleConnect = () => {
       console.log('Conectado al servidor de WebSockets');
       setIsConnected(true);
       setSocketStatus('Conectado');
-    });
+    };
 
     // Manejar desconexión
-    socket.on('disconnect', () => {
+    const handleDisconnect = () => {
       console.log('Desconectado del servidor de WebSockets');
       setIsConnected(false);
       setSocketStatus('Desconectado');
-    });
+    };
 
     // Manejar errores de conexión
-    socket.on('connect_error', (error) => {
+    const handleConnectError = (error: Error | Event)  => {
       console.error('Error de conexión WebSocket:', error);
       setSocketStatus('Error de conexión');
-    });
+    };
 
     // Escuchar respuestas del servidor
-    socket.on('server_response', (data) => {
+    const handleServerResponse = (data: unknown) => {
       console.log('Respuesta del servidor:', data);
-    });
+    };
 
     // Escuchar nuevos posts
-    socket.on('new_post', (newPost: PostType) => {
+    const handleNewPost = (newPost: PostType) => {
       console.log('Nuevo post recibido:', newPost);
       
-      // Comprobar si el post ya existe (evitar duplicados)
       setPosts(currentPosts => {
         if (currentPosts.some(post => post._id === newPost._id)) {
           return currentPosts;
         }
         
-        // Si estamos en la parte superior de la página, añadir directamente
         if (window.scrollY < 100) {
           return [newPost, ...currentPosts];
         } else {
-          // Si el usuario ha desplazado hacia abajo, guardar temporalmente y mostrar notificación
           setTemporaryNewPosts(prev => [newPost, ...prev]);
           setNewPostsCount(prev => prev + 1);
           setNewPostNotification(true);
           return currentPosts;
         }
       });
-    });
+    };
 
-    // Escuchar actualizaciones de posts existentes (likes, comentarios)
-    socket.on('update_post', (updatedPost: PostType) => {
+    // Escuchar actualizaciones de posts existentes
+    const handleUpdatePost = (updatedPost: PostType) => {
       console.log('Post actualizado recibido:', updatedPost);
       
       setPosts(currentPosts => 
@@ -506,71 +502,76 @@ const SocialFeed = () => {
         )
       );
       
-      // También actualizar en temporaryNewPosts si existe ahí
       setTemporaryNewPosts(currentPosts => 
         currentPosts.map(post => 
           post._id === updatedPost._id ? updatedPost : post
         )
       );
-    });
+    };
+
+    // Añadir listeners
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('server_response', handleServerResponse);
+    socket.on('new_post', handleNewPost);
+    socket.on('update_post', handleUpdatePost);
 
     // Limpiar listeners y intervalo al desmontar
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('connect_error');
-      socket.off('server_response');
-      socket.off('new_post');
-      socket.off('update_post');
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('server_response', handleServerResponse);
+      socket.off('new_post', handleNewPost);
+      socket.off('update_post', handleUpdatePost);
       clearInterval(pingInterval);
     };
-  }, [isConnected]);
+  }, [fetchPosts, isConnected]);
 
   // Manejar la creación de un nuevo post
-  const handleCreatePost = async (postData: PostData) => {
+  const handleCreatePost = useCallback(async (postData: PostData) => {
     try {
-      // Crear el post en el servidor
       await postService.createPost(postData);
-      // El nuevo post se manejará a través del socket.io
     } catch (error) {
       console.error('Error al crear el post:', error);
       throw error;
     }
-  };
+  }, []);
 
   // Función para cargar nuevos posts
-  const loadNewPosts = () => {
+  const loadNewPosts = useCallback(() => {
     setPosts(currentPosts => [...temporaryNewPosts, ...currentPosts]);
     setTemporaryNewPosts([]);
     setNewPostsCount(0);
     setNewPostNotification(false);
-    // Desplazar al inicio
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [temporaryNewPosts]);
 
   // Funciones para reconectar en caso de desconexión
-  const reconnect = () => {
+  const reconnect = useCallback(() => {
     if (!isConnected) {
       setSocketStatus('Reconectando...');
       socket.connect();
     }
-  };
+  }, [isConnected]);
 
   // Function to sort posts by date (newest first)
-  const getSortedPosts = (postsToSort: PostType[]) => {
+  const getSortedPosts = useCallback((postsToSort: PostType[]) => {
     return [...postsToSort].sort((a, b) => {
       if (a.createdAt && b.createdAt) {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       return String(b._id).localeCompare(String(a._id));
     });
-  };
+  }, []);
 
-  const openMobileDialog = () => {
+  const openMobileDialog = useCallback(() => {
     setDialogOpen(true);
-  }
+  }, []);
 
   return (
+
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
         {/* Desktop Create Post Trigger with controlled dialog */}
