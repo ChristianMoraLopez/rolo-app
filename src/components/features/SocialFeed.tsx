@@ -73,10 +73,14 @@ const Post = ({ post }: { post: PostType }) => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="font-semibold text-foreground text-lg">{post.author?.name || 'Usuario desconocido'}</div>
+              <div className="font-semibold text-foreground text-lg">
+                {/* Usar directamente authorName si está disponible, o el nombre del autor, o "Usuario desconocido" */}
+                {post.authorName || post.author?.name || 'Usuario desconocido'}
+              </div>
               <div className="flex items-center text-sm text-foreground/60">
                 <MapPin className="mr-1 h-3 w-3" />
-                {post.author?.location || 'Ubicación desconocida'}
+                {/* Usar locationName si está disponible, o la ubicación del autor, o "Ubicación desconocida" */}
+                {post.locationName || post.author?.location || 'Ubicación desconocida'}
                 <span className="mx-2">•</span>
                 <span className="text-xs">
                   {post.createdAt ? new Date(post.createdAt).toLocaleString('es-CO', { 
@@ -179,7 +183,8 @@ const Post = ({ post }: { post: PostType }) => {
                       </Avatar>
                       <div className="flex-1">
                         <div className="font-semibold text-foreground">
-                          {comment.author?.name || 'Usuario desconocido'}
+                          {/* Usar authorName si está disponible, o el nombre del autor, o "Usuario desconocido" */}
+                          {comment.authorName || comment.author?.name || 'Usuario desconocido'}
                         </div>
                         <p className="text-foreground/80 text-sm">{comment.content}</p>
                         <div className="text-xs text-foreground/60">
@@ -206,7 +211,6 @@ const Post = ({ post }: { post: PostType }) => {
     </motion.div>
   );
 };
-
 // Other components remain unchanged
 interface PostData {
   title: string; 
