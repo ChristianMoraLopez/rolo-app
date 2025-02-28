@@ -1,3 +1,5 @@
+// src/core/services/post.ts
+
 import { API_URL } from '@/config/api';
 import { PostType } from '@/core/entities/types';
 
@@ -56,6 +58,49 @@ export const postService = {
       return response.json();
     } catch (error) {
       console.error('Error en postService.createPost:', error);
+      throw error;
+    }
+  },
+
+  // Dar like a un post
+  likePost: async (postId: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al dar like al post');
+      }
+    } catch (error) {
+      console.error('Error en postService.likePost:', error);
+      throw error;
+    }
+  },
+
+  // Comentar un post
+  commentPost: async (postId: string, content: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/posts/${postId}/comment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al comentar el post');
+      }
+    } catch (error) {
+      console.error('Error en postService.commentPost:', error);
       throw error;
     }
   },

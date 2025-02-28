@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,29 +9,68 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PostType } from '@/core/entities/types';
 import Image from 'next/image';
-import { Heart, MessageCircle, Share2, UserCircle2, MapPin, Image as ImageIcon, X, PlusCircle } from 'lucide-react';
+import { Heart, MessageCircle, Share2, UserCircle2, MapPin, Image as ImageIcon, X, PlusCircle, Send } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { postService } from '@/core/services/post';
-import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
 // Configuración del cliente socket.io
-const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+// Configuración del cliente socket.io
+const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+  path: '/socket.io',
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  transports: ['websocket', 'polling']
+});
 
-interface PostProps {
-  post: PostType;
-}
-
-const Post: React.FC<PostProps> = ({ post }) => {
+// Enhanced Post component with comments functionality
+const Post = ({ post }: { post: PostType }) => {
   const [liked, setLiked] = useState(post.liked || false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
-
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const { user } = useAuth();
+  
+  // Función para manejar el like de un post
+  const handleLike = async () => {
+    try {
+      await postService.likePost(post._id);
+      
+      // Actualizar UI inmediatamente (optimistic update)
+      // La actualización real vendrá a través del socket
+      setLiked(!liked);
+      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+    } catch (error) {
+      console.error('Error al dar like al post:', error);
+      // Revertir cambios optimistas en caso de error
+      setLiked(liked);
+      setLikeCount(post.likes || 0);
+    }
   };
-
+  
+  // Función para enviar un comentario
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!commentText.trim()) return;
+    
+    setIsSubmittingComment(true);
+    
+    try {
+      await postService.commentPost(post._id, commentText);
+      
+      // Limpiar el campo después de enviar
+      setCommentText('');
+      // El socket manejará la actualización del contador de comentarios
+    } catch (error) {
+      console.error('Error al comentar el post:', error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -48,12 +87,19 @@ const Post: React.FC<PostProps> = ({ post }) => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="font-semibold text-foreground text-lg">{post.author?.name  || 'Usuario desconocido'}</div>
+              <div className="font-semibold text-foreground text-lg">{post.author?.name || 'Usuario desconocido'}</div>
               <div className="flex items-center text-sm text-foreground/60">
                 <MapPin className="mr-1 h-3 w-3" />
                 {post.author?.location || 'Ubicación desconocida'}
                 <span className="mx-2">•</span>
-                <span className="text-xs">hace 2 horas</span>
+                <span className="text-xs">
+                  {post.createdAt ? new Date(post.createdAt).toLocaleString('es-CO', { 
+                    day: 'numeric', 
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'hace unos momentos'}
+                </span>
               </div>
             </div>
           </div>
@@ -72,7 +118,7 @@ const Post: React.FC<PostProps> = ({ post }) => {
             </div>
           )}
         </CardContent>
-        <CardFooter className="border-t border-moradoclaro/20 pt-4">
+        <CardFooter className="border-t border-moradoclaro/20 pt-4 flex flex-col">
           <div className="flex justify-between w-full">
             <Button
               variant="ghost"
@@ -87,6 +133,7 @@ const Post: React.FC<PostProps> = ({ post }) => {
               variant="ghost"
               size="sm"
               className="text-foreground/60 hover:text-moradoprimary font-medium transition-colors duration-200"
+              onClick={() => setShowComments(!showComments)}
             >
               <MessageCircle className="h-5 w-5 mr-1" />
               {post.comments}
@@ -100,16 +147,59 @@ const Post: React.FC<PostProps> = ({ post }) => {
               Compartir
             </Button>
           </div>
+          
+          {/* Sección de comentarios */}
+          {showComments && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="w-full mt-4 border-t border-moradoclaro/20 pt-4"
+            >
+              {/* Formulario para añadir comentario */}
+              <form onSubmit={handleSubmitComment} className="flex items-center space-x-2 mb-4">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.avatar || ''} />
+                  <AvatarFallback>
+                    <UserCircle2 className="h-8 w-8 text-moradoprimary" />
+                  </AvatarFallback>
+                </Avatar>
+                <Textarea
+                  placeholder="Escribe un comentario..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="min-h-[40px] text-sm resize-none flex-1"
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  disabled={isSubmittingComment || !commentText.trim()}
+                  className="bg-gradient-to-r from-moradoprimary to-azulsecundario hover:from-moradohover hover:to-azulsechover text-white h-10 w-10"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+              
+              {/* Aquí se mostrarían los comentarios si tienes la información */}
+              <div className="text-center text-sm text-foreground/60 py-4">
+                <p>Los comentarios se mostrarían aquí</p>
+                <p className="text-xs">Para implementar completamente esta funcionalidad, necesitarías crear un endpoint que devuelva los comentarios para cada post.</p>
+              </div>
+            </motion.div>
+          )}
         </CardFooter>
       </Card>
     </motion.div>
   );
 };
-interface PostData {
-  content: string;
-  image?: File;
-}
 
+interface PostData {
+  title: string; 
+  content: string;
+  image?: File; 
+  author?: string;
+  location?: string;
+}
 
 interface CreatePostDialogControlledProps {
   open: boolean;
@@ -190,7 +280,7 @@ const CreatePostDialogControlled: React.FC<CreatePostDialogControlledProps> = ({
           <CardContent className="py-4">
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12 border-2 border-moradoclaro/30">
-                <AvatarImage src={user?.avatar || "/avatar-placeholder.jpg"} />
+                <AvatarImage src={user?.avatar || ""} />
                 <AvatarFallback>
                   <UserCircle2 className="h-12 w-12 text-moradoprimary" />
                 </AvatarFallback>
@@ -211,7 +301,7 @@ const CreatePostDialogControlled: React.FC<CreatePostDialogControlledProps> = ({
         <form onSubmit={handleSubmit} className="p-4">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.avatar || "/avatar-placeholder.jpg"} />
+              <AvatarImage src={user?.avatar || ""} />
               <AvatarFallback>
                 <UserCircle2 className="h-10 w-10 text-moradoprimary" />
               </AvatarFallback>
@@ -301,6 +391,7 @@ const CreatePostDialogControlled: React.FC<CreatePostDialogControlledProps> = ({
     </Dialog>
   );
 };
+
 const MobileCreatePostButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <Button
@@ -313,14 +404,6 @@ const MobileCreatePostButton = ({ onClick }: { onClick: () => void }) => {
   );
 };
 
-interface PostData {
-  title: string;
-  content: string;
-  image?: File;
-  location?: string;
-}
-
-
 const SocialFeed = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState('todos');
@@ -329,6 +412,7 @@ const SocialFeed = () => {
   const [newPostNotification, setNewPostNotification] = useState(false);
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [temporaryNewPosts, setTemporaryNewPosts] = useState<PostType[]>([]);
+  const [socketStatus, setSocketStatus] = useState<string>('Desconectado');
 
   // Función para cargar posts
   const fetchPosts = async () => {
@@ -338,7 +422,7 @@ const SocialFeed = () => {
         if (a.createdAt && b.createdAt) {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
-        return String(b._id).localeCompare(String(a._id));
+        return 0;
       });
       setPosts(sortedPosts);
       setTemporaryNewPosts([]);
@@ -354,16 +438,39 @@ const SocialFeed = () => {
     // Cargar posts al iniciar
     fetchPosts();
 
+    // Función para enviar un ping al servidor
+    const pingServer = () => {
+      if (isConnected) {
+        socket.emit('client_message', { type: 'ping', message: 'Ping desde el cliente' });
+      }
+    };
+
+    // Intervalo para mantener la conexión activa
+    const pingInterval = setInterval(pingServer, 30000); // 30 segundos
+
     // Manejar conexión
     socket.on('connect', () => {
       console.log('Conectado al servidor de WebSockets');
       setIsConnected(true);
+      setSocketStatus('Conectado');
     });
 
     // Manejar desconexión
     socket.on('disconnect', () => {
       console.log('Desconectado del servidor de WebSockets');
       setIsConnected(false);
+      setSocketStatus('Desconectado');
+    });
+
+    // Manejar errores de conexión
+    socket.on('connect_error', (error) => {
+      console.error('Error de conexión WebSocket:', error);
+      setSocketStatus('Error de conexión');
+    });
+
+    // Escuchar respuestas del servidor
+    socket.on('server_response', (data) => {
+      console.log('Respuesta del servidor:', data);
     });
 
     // Escuchar nuevos posts
@@ -389,23 +496,45 @@ const SocialFeed = () => {
       });
     });
 
-    // Limpiar listeners al desmontar
+    // Escuchar actualizaciones de posts existentes (likes, comentarios)
+    socket.on('update_post', (updatedPost: PostType) => {
+      console.log('Post actualizado recibido:', updatedPost);
+      
+      setPosts(currentPosts => 
+        currentPosts.map(post => 
+          post._id === updatedPost._id ? updatedPost : post
+        )
+      );
+      
+      // También actualizar en temporaryNewPosts si existe ahí
+      setTemporaryNewPosts(currentPosts => 
+        currentPosts.map(post => 
+          post._id === updatedPost._id ? updatedPost : post
+        )
+      );
+    });
+
+    // Limpiar listeners y intervalo al desmontar
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('connect_error');
+      socket.off('server_response');
       socket.off('new_post');
+      socket.off('update_post');
+      clearInterval(pingInterval);
     };
-  }, []);
+  }, [isConnected]);
 
   // Manejar la creación de un nuevo post
   const handleCreatePost = async (postData: PostData) => {
     try {
       // Crear el post en el servidor
       await postService.createPost(postData);
-      // No es necesario devolver nada, ya que el nuevo post se manejará a través del socket.io
+      // El nuevo post se manejará a través del socket.io
     } catch (error) {
       console.error('Error al crear el post:', error);
-      throw error; // Propagar el error para que pueda manejarse en el componente CreatePostDialogControlled
+      throw error;
     }
   };
 
@@ -417,6 +546,14 @@ const SocialFeed = () => {
     setNewPostNotification(false);
     // Desplazar al inicio
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Funciones para reconectar en caso de desconexión
+  const reconnect = () => {
+    if (!isConnected) {
+      setSocketStatus('Reconectando...');
+      socket.connect();
+    }
   };
 
   // Function to sort posts by date (newest first)
@@ -537,8 +674,24 @@ const SocialFeed = () => {
         {/* Mobile Create Post Button */}
         <MobileCreatePostButton onClick={openMobileDialog} />
         
-        {/* Indicador de estado de conexión (opcional) */}
-        <div className={`fixed bottom-4 left-4 h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isConnected ? 'Conectado en tiempo real' : 'Desconectado'}></div>
+        {/* Indicador de estado de conexión con el texto de estado */}
+        <div className="fixed bottom-4 left-4 flex items-center space-x-2 bg-background/80 backdrop-blur-sm py-1 px-3 rounded-full shadow-sm border border-moradoclaro/30">
+          <div 
+            className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+            title={isConnected ? 'Conectado en tiempo real' : 'Desconectado'}
+          ></div>
+          <span className="text-xs text-foreground/70">{socketStatus}</span>
+          {!isConnected && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 text-xs px-2 py-0 ml-1" 
+              onClick={reconnect}
+            >
+              Reconectar
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
