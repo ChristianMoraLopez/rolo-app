@@ -1,6 +1,8 @@
+//src\components\features\SocialFeed.tsx
+
 "use client";
 
-import React, { useState, useRef, useEffect,useCallback  } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,18 +15,11 @@ import { Heart, MessageCircle, Share2, UserCircle2, MapPin, Image as ImageIcon, 
 import { useAuth } from '@/hooks/useAuth';
 import { postService } from '@/core/services/post';
 import { motion, AnimatePresence } from 'framer-motion';
-import { io } from 'socket.io-client';
-
-// Configuración del cliente socket.io
-const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
-  path: '/socket.io',
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  transports: ['websocket', 'polling']
-});
+import socket from '@/lib/socket'; 
 
 // Enhanced Post component with comments functionality
 const Post = ({ post }: { post: PostType }) => {
+  // Rest of the Post component remains unchanged
   const [liked, setLiked] = useState(post.liked || false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [showComments, setShowComments] = useState(false);
@@ -192,6 +187,7 @@ const Post = ({ post }: { post: PostType }) => {
   );
 };
 
+// Other components remain unchanged
 interface PostData {
   title: string; 
   content: string;
@@ -211,6 +207,7 @@ const CreatePostDialogControlled: React.FC<CreatePostDialogControlledProps> = ({
   onOpenChange,
   onPostCreated
 }) => {
+  // Component content remains unchanged
   const [content, setContent] = useState('');
   const [image, setImage] = useState<File | undefined>(undefined);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -432,47 +429,29 @@ const SocialFeed = () => {
     }
   }, []);
 
-
-useEffect(() => {
+  useEffect(() => {
     // Cargar posts al iniciar
     fetchPosts();
 
-    // Función para enviar un ping al servidor
-    const pingServer = () => {
-      if (isConnected) {
-        socket.emit('client_message', { type: 'ping', message: 'Ping desde el cliente' });
-      }
-    };
-
-    // Intervalo para mantener la conexión activa
-    const pingInterval = setInterval(pingServer, 30000); // 30 segundos
-
-    // Manejar conexión
+    // Monitor connection status changes
     const handleConnect = () => {
       console.log('Conectado al servidor de WebSockets');
       setIsConnected(true);
       setSocketStatus('Conectado');
     };
 
-    // Manejar desconexión
     const handleDisconnect = () => {
       console.log('Desconectado del servidor de WebSockets');
       setIsConnected(false);
       setSocketStatus('Desconectado');
     };
 
-    // Manejar errores de conexión
-    const handleConnectError = (error: Error | Event)  => {
+    const handleConnectError = (error: Error) => {
       console.error('Error de conexión WebSocket:', error);
       setSocketStatus('Error de conexión');
     };
 
-    // Escuchar respuestas del servidor
-    const handleServerResponse = (data: unknown) => {
-      console.log('Respuesta del servidor:', data);
-    };
-
-    // Escuchar nuevos posts
+    // Event listeners
     const handleNewPost = (newPost: PostType) => {
       console.log('Nuevo post recibido:', newPost);
       
@@ -492,7 +471,6 @@ useEffect(() => {
       });
     };
 
-    // Escuchar actualizaciones de posts existentes
     const handleUpdatePost = (updatedPost: PostType) => {
       console.log('Post actualizado recibido:', updatedPost);
       
@@ -509,25 +487,37 @@ useEffect(() => {
       );
     };
 
-    // Añadir listeners
+    // Set up event listeners
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
-    socket.on('server_response', handleServerResponse);
     socket.on('new_post', handleNewPost);
     socket.on('update_post', handleUpdatePost);
 
-    // Limpiar listeners y intervalo al desmontar
+    // Function to send a ping to the server periodically to keep the connection alive
+    const pingServer = () => {
+      if (socket.connected) {
+        socket.emit('client_message', { type: 'ping', message: 'Ping desde el cliente' });
+      }
+    };
+
+    // Set up ping interval
+    const pingInterval = setInterval(pingServer, 30000); // 30 seconds
+
+    // Update initial connection status
+    setIsConnected(socket.connected);
+    setSocketStatus(socket.connected ? 'Conectado' : 'Desconectado');
+
+    // Clean up function
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
-      socket.off('server_response', handleServerResponse);
       socket.off('new_post', handleNewPost);
       socket.off('update_post', handleUpdatePost);
       clearInterval(pingInterval);
     };
-  }, [fetchPosts, isConnected]);
+  }, [fetchPosts]);
 
   // Manejar la creación de un nuevo post
   const handleCreatePost = useCallback(async (postData: PostData) => {
@@ -571,7 +561,6 @@ useEffect(() => {
   }, []);
 
   return (
-
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
         {/* Desktop Create Post Trigger with controlled dialog */}
