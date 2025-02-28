@@ -10,8 +10,8 @@ const getBaseUrl = () => {
     : apiUrl;
 };
 
-// Initialize socket with proper configuration
-const socket = io(getBaseUrl(), {
+// Initialize main socket connection
+const mainSocket = io(getBaseUrl(), {
   path: '/socket.io',
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -20,13 +20,34 @@ const socket = io(getBaseUrl(), {
   forceNew: true
 });
 
-// Debug listeners
-socket.on('connect', () => {
-  console.log('Socket connected successfully with ID:', socket.id);
+// Initialize posts namespace connection
+const postsSocket = io(`${getBaseUrl()}/posts`, {
+  path: '/socket.io',
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  transports: ['websocket', 'polling'],
+  autoConnect: true,
+  forceNew: true
 });
 
-socket.on('connect_error', (error) => {
-  console.error('Socket connection error:', error.message);
+// Debug listeners for main socket
+mainSocket.on('connect', () => {
+  console.log('Main socket connected successfully with ID:', mainSocket.id);
 });
 
-export default socket;
+mainSocket.on('connect_error', (error) => {
+  console.error('Main socket connection error:', error.message);
+});
+
+// Debug listeners for posts socket
+postsSocket.on('connect', () => {
+  console.log('Posts socket connected successfully with ID:', postsSocket.id);
+});
+
+postsSocket.on('connect_error', (error) => {
+  console.error('Posts socket connection error:', error.message);
+});
+
+// Export both sockets - you can choose to use either one based on your needs
+export { mainSocket, postsSocket };
+export default mainSocket; 
