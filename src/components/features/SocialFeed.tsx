@@ -15,7 +15,8 @@ import { Heart, MessageCircle, Share2, UserCircle2, MapPin, Image as ImageIcon, 
 import { useAuth } from '@/hooks/useAuth';
 import { postService } from '@/core/services/post';
 import { motion, AnimatePresence } from 'framer-motion';
-import { postsSocket } from '@/lib/socket';
+// Import the shared socket instance
+import socket from '@/lib/socket'; 
 
 // Enhanced Post component with comments functionality
 const Post = ({ post }: { post: PostType }) => {
@@ -488,16 +489,16 @@ const SocialFeed = () => {
     };
 
     // Set up event listeners
-    postsSocket.on('connect', handleConnect);
-    postsSocket.on('disconnect', handleDisconnect);
-    postsSocket.on('connect_error', handleConnectError);
-    postsSocket.on('new_post', handleNewPost);
-    postsSocket.on('update_post', handleUpdatePost);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('new_post', handleNewPost);
+    socket.on('update_post', handleUpdatePost);
 
     // Function to send a ping to the server periodically to keep the connection alive
     const pingServer = () => {
-      if (postsSocket.connected) {
-        postsSocket.emit('client_message', { type: 'ping', message: 'Ping desde el cliente' });
+      if (socket.connected) {
+        socket.emit('client_message', { type: 'ping', message: 'Ping desde el cliente' });
       }
     };
 
@@ -505,16 +506,16 @@ const SocialFeed = () => {
     const pingInterval = setInterval(pingServer, 30000); // 30 seconds
 
     // Update initial connection status
-    setIsConnected( postsSocket.connected);
-    setSocketStatus( postsSocket.connected ? 'Conectado' : 'Desconectado');
+    setIsConnected(socket.connected);
+    setSocketStatus(socket.connected ? 'Conectado' : 'Desconectado');
 
     // Clean up function
     return () => {
-       postsSocket.off('connect', handleConnect);
-       postsSocket.off('disconnect', handleDisconnect);
-       postsSocket.off('connect_error', handleConnectError);
-       postsSocket.off('new_post', handleNewPost);
-       postsSocket.off('update_post', handleUpdatePost);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('new_post', handleNewPost);
+      socket.off('update_post', handleUpdatePost);
       clearInterval(pingInterval);
     };
   }, [fetchPosts]);
@@ -542,7 +543,7 @@ const SocialFeed = () => {
   const reconnect = useCallback(() => {
     if (!isConnected) {
       setSocketStatus('Reconectando...');
-       postsSocket.connect();
+      socket.connect();
     }
   }, [isConnected]);
 
