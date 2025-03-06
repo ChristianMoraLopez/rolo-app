@@ -1,0 +1,215 @@
+[33mcommit 0e740a286d9427095c3c650aea9e0edfb4810afa[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Christian Mora <christianmoralopez@hotmail.com>
+Date:   Wed Mar 5 11:48:01 2025 -0500
+
+    loggin2
+
+[33mcommit 15f2adf9ec722f25f7aa73a9f8b6bb7827adeae1[m
+Author: Christian Mora <christianmoralopez@hotmail.com>
+Date:   Wed Mar 5 11:40:41 2025 -0500
+
+    inteno de login
+
+[33mcommit 8e2d960c1fb3cc71380ad615baf2f622f6e64895[m
+Author: Christian Mora <christianmoralopez@hotmail.com>
+Date:   Wed Mar 5 11:16:54 2025 -0500
+
+    login arreglado
+
+[33mcommit c312d89887f220b16a661f451a4b1398b5222cef[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 16:30:09 2025 -0500
+
+    Name comment
+
+[33mcommit 20623894810f0cd7929285308d4e04f1b380b658[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 14:31:00 2025 -0500
+
+    comentarios y likes
+
+[33mcommit 180864be10cf97a64de17ba7cde20026ab5b8f87[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 13:59:30 2025 -0500
+
+    1 solo cket
+
+[33mcommit b79aa8e56ffd9270b5c0f1f9cff67ccb1b4b1ab5[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 13:24:22 2025 -0500
+
+    back
+
+[33mcommit e77def2e199d72e287a55ab265b880de14c822a7[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 13:08:26 2025 -0500
+
+    Back
+
+[33mcommit 5721c9bb806234339ffe7d982e3b22a43dfe1382[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 11:39:15 2025 -0500
+
+    websocket
+
+[33mcommit 0bf21aa0d9b410e1100c393ae2c23da49c1ba6bb[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 28 11:11:58 2025 -0500
+
+    back websocket
+
+[33mcommit c2eb2c87f9fd4b82584e662ef82165b28e85c40f[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 19:58:58 2025 -0500
+
+    fix
+
+[33mcommit e8f22a9abf772cfe67e8d812e8addf495823de37[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 19:56:53 2025 -0500
+
+    fix
+
+[33mcommit be1d7cb44f456910ec15ff8359eda4b3e7b06aff[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 19:52:32 2025 -0500
+
+    fix bugs
+
+[33mcommit 81efec7504eedb65cde38105cc32146be9512888[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 18:32:26 2025 -0500
+
+    config
+
+[33mcommit f70ef5dd73b81c703a2b6552a2fa21d5f16c833d[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 17:29:20 2025 -0500
+
+    a verrr
+
+[33mcommit d396aecd771901f6a08cd690f1454e9f2b4898e0[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 17:17:44 2025 -0500
+
+    delete mock data
+
+[33mcommit 565812fbf84d99521b37097d2fbe7697cea0f168[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 16:54:20 2025 -0500
+
+    despliegue con verificación tiempo real
+
+[33mcommit e23ceb0a9c27c8ce82fdba6faec7de3a1db2c93a[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Tue Feb 25 12:34:41 2025 -0500
+
+    cambios con en backend
+
+[33mcommit 176bc54c7e6e3538fd3261bfca0b6268412a629f[m
+Author: Christian Mora <christianmoralopez@hotmail.com>
+Date:   Mon Feb 24 16:19:10 2025 -0500
+
+    back
+
+[33mcommit b7b9acea11a1534e879a55959ba94d5b8cfa6290[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Mon Feb 24 11:59:01 2025 -0500
+
+    backend
+
+[33mcommit 74b199eec7df4db4d95c0a5ae8d1cfdb204f6240[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Mon Feb 17 12:33:15 2025 -0500
+
+    url
+
+[33mcommit 266889b8841fe889f88d9315b6fc228c16f081b9[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Mon Feb 17 12:30:41 2025 -0500
+
+    readme
+
+[33mcommit 948fdf12fc1bb70e94a274291ca7d36fd9c84a6b[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 16:24:31 2025 -0500
+
+    map
+
+[33mcommit 872ffd794573229b48ba4f412b39a5bf634b0114[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 16:15:42 2025 -0500
+
+    map
+
+[33mcommit 8304ad403aa8ef75da7a31c067027b2653b1e8ec[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 16:08:58 2025 -0500
+
+    ah
+
+[33mcommit 88788c01c9a356b72f1f1e6e6d1f278865b03872[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 15:50:28 2025 -0500
+
+    map error
+
+[33mcommit f632d747fe308eef1d5cef63ed21d433183ef41d[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 15:46:01 2025 -0500
+
+    map error
+
+[33mcommit b436999c874d2b55addaaec07cbe028efde1f0ed[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 15:33:33 2025 -0500
+
+    addlocations
+
+[33mcommit c27f0e11150035c01c6bbdc83fea5ae1e84bb0d8[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 15:27:38 2025 -0500
+
+    explorar
+
+[33mcommit d8457756d4ef1bb2c00750078f9571d9cd8475a5[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 15:17:20 2025 -0500
+
+    admin
+
+[33mcommit 468938960366f3c81aea75beb772891fd7de1a31[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 14:48:11 2025 -0500
+
+    pictures
+
+[33mcommit 4f62652dcb2846441c3b7ab3fed257f8dac63184[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 14:43:33 2025 -0500
+
+    add location
+
+[33mcommit caf02098161be6faae740f1b90b00710f9b41ed9[m
+Author: Christian Rey Mora <christianmoralopez@hotmail.com>
+Date:   Fri Feb 14 08:20:18 2025 -0500
+
+    register page
+
+[33mcommit 88acaf026818fd1abd6d7d5c7e6cfcfe845e3422[m
+Author: root <root@ChristianMora>
+Date:   Thu Feb 13 21:35:21 2025 -0500
+
+    Se inicia proyecto Front
+
+[33mcommit eba12a7a48a0fc8c822f916efadf6799a1f25583[m
+Author: root <root@ChristianMora>
+Date:   Thu Feb 13 21:13:08 2025 -0500
+
+    Se inicia proyecto Front
+
+[33mcommit f2695f8949e1e96b39bc3ccc903d42fe99e340d4[m
+Author: Chistian Rey Mora López <christianmoralopez@hotmail.com>
+Date:   Thu Feb 13 21:34:45 2025 -0500
+
+    Initial commit
