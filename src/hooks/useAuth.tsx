@@ -1,9 +1,9 @@
-//\src\hooks\useAuth.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/core/entities/types';
 import { authService } from '@/core/services/auth';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie'; 
 
 interface AuthResponse {
   user: User;
@@ -43,92 +43,125 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userJson = JSON.stringify(userData);
       localStorage.setItem('currentUser', userJson);
       
-      // Establece la cookie
-      document.cookie = `currentUser=${userJson}; path=/; max-age=86400`;
+      // Establecer la cookie correctamente para que sea accesible por el middleware
+      // Usar js-cookie para configurar la cookie de manera adecuada
+      Cookies.set('currentUser', userJson, { 
+        path: '/', 
+        expires: 1, // 1 day
+        sameSite: 'lax' 
+      });
+      
+      // Establecer también el token en la cookie para el middleware
+      Cookies.set('auth_token', token, { 
+        path: '/', 
+        expires: 1, // 1 day
+        sameSite: 'lax' 
+      });
       
       // Finalmente actualiza el estado
       setUser(userData);
       
-      console.log('Usuario y token guardados correctamente');
+      console.log('Usuario y token guardados correctamente (localStorage y cookies)');
     } catch (error) {
       console.error('Error al guardar datos de usuario:', error);
       toast.error('Error al guardar los datos de sesión');
     }
   };
 
-
-
-// En tu useEffect para cargar el usuario
-useEffect(() => {
-  const loadUser = async () => {
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      const storedToken = localStorage.getItem('token');
-      
-      console.log('Verificando datos almacenados:');
-      console.log('- Usuario almacenado:', storedUser);
-      console.log('- Token almacenado:', storedToken ? 'Presente (oculto por seguridad)' : 'No encontrado');
-      
-      // Si solo hay token pero no usuario, intenta recuperar los datos del usuario
-      if (!storedUser && storedToken) {
-        console.log('Detectado token sin usuario, intentando recuperar información del usuario...');
-        try {
-          // Implementa una función para obtener el usuario con el token
-          const userData = await authService.getUserProfile(storedToken);
-          if (userData) {
-            console.log('Usuario recuperado correctamente');
-            const userJson = JSON.stringify(userData);
-            localStorage.setItem('currentUser', userJson);
-            setUser(userData);
-          }
-        } catch (recoverError) {
-          console.error('No se pudo recuperar el usuario, limpiando token:', recoverError);
-          localStorage.removeItem('token');
+  // En tu useEffect para cargar el usuario
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const storedUser = localStorage.getItem('currentUser');
+        const storedToken = localStorage.getItem('token');
+        const cookieUser = Cookies.get('currentUser');
+        
+        console.log('Verificando datos almacenados:');
+        console.log('- Usuario localStorage:', storedUser ? 'Presente' : 'No encontrado');
+        console.log('- Usuario cookie:', cookieUser ? 'Presente' : 'No encontrado');
+        console.log('- Token almacenado:', storedToken ? 'Presente (oculto por seguridad)' : 'No encontrado');
+        
+        // Si hay información en cookies pero no en localStorage, sincronizar
+        if (cookieUser && !storedUser) {
+          localStorage.setItem('currentUser', cookieUser);
         }
-      } else if(storedUser && storedToken) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          console.log('Usuario cargado correctamente:', parsedUser.name || parsedUser.email);
-        } catch (parseError) {
-          console.error('Error al analizar el usuario almacenado:', parseError);
-          // Limpieza de datos inválidos
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('token');
+        
+        // Si hay info en localStorage pero no en cookies, sincronizar
+        if (storedUser && !cookieUser) {
+          Cookies.set('currentUser', storedUser, { 
+            path: '/', 
+            expires: 1,
+            sameSite: 'lax' 
+          });
+        }
+        
+        // Si solo hay token pero no usuario, intenta recuperar los datos del usuario
+        if (!storedUser && storedToken) {
+          console.log('Detectado token sin usuario, intentando recuperar información del usuario...');
+          try {
+            // Implementa una función para obtener el usuario con el token
+            const userData = await authService.getUserProfile(storedToken);
+            if (userData) {
+              console.log('Usuario recuperado correctamente');
+              // Usar la función centralizada para establecer todos los datos
+              setUserData(userData, storedToken);
+            }
+          } catch (recoverError) {
+            console.error('No se pudo recuperar el usuario, limpiando token:', recoverError);
+            localStorage.removeItem('token');
+            Cookies.remove('auth_token');
+          }
+        } else if(storedUser && storedToken) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            
+            // Asegurar que las cookies estén actualizadas
+            Cookies.set('currentUser', storedUser, { 
+              path: '/', 
+              expires: 1,
+              sameSite: 'lax' 
+            });
+            Cookies.set('auth_token', storedToken, { 
+              path: '/', 
+              expires: 1,
+              sameSite: 'lax' 
+            });
+            
+            console.log('Usuario cargado correctamente:', parsedUser.name || parsedUser.email);
+          } catch (parseError) {
+            console.error('Error al analizar el usuario almacenado:', parseError);
+            // Limpieza de datos inválidos
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('token');
+            Cookies.remove('currentUser');
+            Cookies.remove('auth_token');
+            setUser(null);
+          }
+        } else {
+          console.log('No se encontraron datos de sesión válidos');
           setUser(null);
         }
-      } else {
-        console.log('No se encontraron datos de sesión válidos');
+      } catch (error) {
+        console.error('Error al cargar el usuario:', error);
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('token');
+        Cookies.remove('currentUser');
+        Cookies.remove('auth_token');
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error al cargar el usuario:', error);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('token');
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  loadUser();
-  // Escucha cambios en localStorage desde otras pestañas
-  window.addEventListener('storage', loadUser);
-  
-  return () => {
-    window.removeEventListener('storage', loadUser);
-  };
-}, []);
-
-
-
-
-
-
-
-
-
-
+    loadUser();
+    // Escucha cambios en localStorage desde otras pestañas
+    window.addEventListener('storage', loadUser);
+    
+    return () => {
+      window.removeEventListener('storage', loadUser);
+    };
+  }, []);
 
   // Función de inicio de sesión simplificada y robusta
   const login = async (email: string, password: string): Promise<AuthResponse> => {
@@ -213,8 +246,9 @@ useEffect(() => {
       localStorage.removeItem('currentUser');
       localStorage.removeItem('token');
       
-      // Eliminar cookie
-      document.cookie = 'currentUser=; path=/; max-age=0';
+      // Eliminar cookies correctamente
+      Cookies.remove('currentUser');
+      Cookies.remove('auth_token');
       
       // Actualizar estado
       setUser(null);

@@ -38,7 +38,7 @@ export default function LoginPage() {
       await login(email, password);
       
       // Redirigimos al home
-      router.push('/');
+      router.push('/bogotanos');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -60,7 +60,7 @@ export default function LoginPage() {
       await googleLogin(token);
       
       // Redirigimos al home
-      router.push('/');
+      router.push('/bogotanos');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);

@@ -21,6 +21,7 @@
     "clsx": "^2.1.1",
     "dropdown-menu": "^0.1.1",
     "framer-motion": "^12.4.3",
+    "js-cookie": "^3.0.5",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "mongodb": "^6.13.1",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/js-cookie": "^3.0.6",
     "@types/leaflet": "^1.9.16",
     "@types/next": "^9.0.0",
     "@types/node": "^20.17.19",
