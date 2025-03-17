@@ -1,3 +1,4 @@
+//src\components\ui\button-google.tsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { FaGoogle } from "react-icons/fa";
@@ -43,6 +44,36 @@ const GoogleAuthButton = ({
     }
   }, [authError, onError]);
 
+  // Función para redirección directa a Google Auth (sin popup)
+  const redirectToGoogleAuth = useCallback(() => {
+    const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!client_id) {
+      console.error('No se encontró Google Client ID');
+      onError("No se encontró configuración para Google Auth");
+      return;
+    }
+    
+    // Guardar la URL actual para redirigir de vuelta después de la autenticación
+    const currentPath = encodeURIComponent(window.location.pathname);
+    sessionStorage.setItem('googleAuthRedirect', currentPath);
+    
+    // Guardar datos adicionales para el flujo de auth
+    if (Object.keys(additionalData).length > 0) {
+      sessionStorage.setItem('googleAuthData', JSON.stringify(additionalData));
+    }
+    
+    // Crear la URL de autenticación de Google
+    const redirect_uri = encodeURIComponent(`${window.location.origin}/api/auth/google-callback`);
+    const scope = encodeURIComponent('profile email');
+    const response_type = 'code'; // Usar 'code' en lugar de 'token' para el flujo seguro
+    const state = currentPath; // Pasar la ruta actual como state para recuperarla después
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&response_type=${response_type}&state=${state}`;
+    
+    // Redirigir a Google Auth
+    window.location.href = authUrl;
+  }, [additionalData, onError]);
+
   // Callback para manejar la respuesta de Google
   const handleGoogleResponse = useCallback((response: GoogleResponse | null) => {
     if (response?.credential) {
@@ -67,54 +98,6 @@ const GoogleAuthButton = ({
     }
   }, [handleGoogleAuth, additionalData, onSuccess, onError]);
 
-  // Cargar el script de Google
-  useEffect(() => {
-    const loadGoogleScript = () => {
-      // Verificar si ya está cargado
-      if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
-        setScriptLoaded(true);
-        return;
-      }
-      
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setScriptLoaded(true);
-      };
-      script.onerror = (error) => {
-        console.error('Error cargando el script de Google API:', error);
-        onError("Error cargando la API de Google");
-        redirectToGoogleAuth(); // Si falla la carga del script, redirigir directamente
-      };
-      document.head.appendChild(script);
-    };
-
-    loadGoogleScript();
-    
-    // Limpieza al desmontar
-    return () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.cancel();
-      }
-    };
-  }, [onError]);
-
-  // Inicializar la API de Google cuando el script está cargado
-  useEffect(() => {
-    if (scriptLoaded && !isInitialized) {
-      initializeGoogleAuth();
-    }
-  }, [scriptLoaded, isInitialized]);
-
-  // Renderizar botón de Google cuando el componente está montado
-  useEffect(() => {
-    if (isInitialized && googleButtonRef.current) {
-      renderGoogleButton();
-    }
-  }, [isInitialized]);
-
   const renderGoogleButton = useCallback(() => {
     if (!window.google?.accounts?.id || !googleButtonRef.current) return;
     
@@ -132,7 +115,7 @@ const GoogleAuthButton = ({
       onError("Error al renderizar el botón de Google");
       redirectToGoogleAuth(); // Si falla el renderizado, redirigir
     }
-  }, [variant, onError]);
+  }, [variant, onError, redirectToGoogleAuth]);
 
   const initializeGoogleAuth = useCallback(() => {
     if (!window.google?.accounts?.id) {
@@ -168,37 +151,55 @@ const GoogleAuthButton = ({
       onError("Error inicializando Google Sign-In");
       redirectToGoogleAuth(); // Si falla la inicialización, redirigir
     }
-  }, [handleGoogleResponse, onError]);
-  
-  // Función para redirección directa a Google Auth (sin popup)
-  const redirectToGoogleAuth = () => {
-    const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!client_id) {
-      console.error('No se encontró Google Client ID');
-      onError("No se encontró configuración para Google Auth");
-      return;
+  }, [handleGoogleResponse, onError, redirectToGoogleAuth]);
+
+  // Cargar el script de Google
+  useEffect(() => {
+    const loadGoogleScript = () => {
+      // Verificar si ya está cargado
+      if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
+        setScriptLoaded(true);
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setScriptLoaded(true);
+      };
+      script.onerror = (error) => {
+        console.error('Error cargando el script de Google API:', error);
+        onError("Error cargando la API de Google");
+        redirectToGoogleAuth(); // Si falla la carga del script, redirigir directamente
+      };
+      document.head.appendChild(script);
+    };
+
+    loadGoogleScript();
+    
+    // Limpieza al desmontar
+    return () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.cancel();
+      }
+    };
+  }, [onError, redirectToGoogleAuth]);
+
+  // Inicializar la API de Google cuando el script está cargado
+  useEffect(() => {
+    if (scriptLoaded && !isInitialized) {
+      initializeGoogleAuth();
     }
-    
-    // Guardar la URL actual para redirigir de vuelta después de la autenticación
-    const currentPath = encodeURIComponent(window.location.pathname);
-    sessionStorage.setItem('googleAuthRedirect', currentPath);
-    
-    // Guardar datos adicionales para el flujo de auth
-    if (Object.keys(additionalData).length > 0) {
-      sessionStorage.setItem('googleAuthData', JSON.stringify(additionalData));
+  }, [scriptLoaded, isInitialized, initializeGoogleAuth]);
+
+  // Renderizar botón de Google cuando el componente está montado
+  useEffect(() => {
+    if (isInitialized && googleButtonRef.current) {
+      renderGoogleButton();
     }
-    
-    // Crear la URL de autenticación de Google
-    const redirect_uri = encodeURIComponent(`${window.location.origin}/api/auth/google-callback`);
-    const scope = encodeURIComponent('profile email');
-    const response_type = 'code'; // Usar 'code' en lugar de 'token' para el flujo seguro
-    const state = currentPath; // Pasar la ruta actual como state para recuperarla después
-    
-    const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&response_type=${response_type}&state=${state}`;
-    
-    // Redirigir a Google Auth
-    window.location.href = authUrl;
-  };
+  }, [isInitialized, renderGoogleButton]);
 
   // Manejar clic en el contenedor cuando falla el botón de Google
   const handleContainerClick = () => {
