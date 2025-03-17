@@ -22,8 +22,6 @@ const GoogleAuthButton = ({
   isLoading: externalLoading = false,
   disabled = false,
   className = "",
-  onSuccess,
-  onError,
   additionalData = {}
 }: GoogleAuthButtonProps) => {
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -31,41 +29,25 @@ const GoogleAuthButton = ({
   const googleButtonRef = useRef<HTMLDivElement>(null);
   
   // Usar el hook unificado de autenticación con Google
-  const { handleGoogleAuth, isLoading: authLoading, error: authError } = useGoogleAuth();
+  const { handleGoogleAuth, isLoading: authLoading, error } = useGoogleAuth();
   
   // Combinar estado de carga externo e interno
   const isLoading = externalLoading || authLoading;
-
-  // Effect para manejar los errores
-  useEffect(() => {
-    if (authError && onError) {
-      onError(authError);
-    }
-  }, [authError, onError]);
 
   // Callback para manejar la respuesta de Google
   const handleGoogleResponse = useCallback((response: GoogleResponse | null) => {
     if (response?.credential) {
       console.log("Recibida credencial de Google:", response.credential.substring(0, 20) + "...");
       try {
-        // Primero notificar al padre sobre el éxito con la credencial
-        onSuccess(response.credential);
-        
-        // Opcional: También manejar internamente la autenticación si es necesario
+        // Usar el método unificado de autenticación
         handleGoogleAuth(response.credential, additionalData);
       } catch (callbackError) {
         console.error("Error al procesar credencial de Google:", callbackError);
-        if (onError && callbackError instanceof Error) {
-          onError(callbackError.message);
-        } else {
-          onError("Error desconocido al procesar la credencial de Google");
-        }
       }
     } else {
       console.error("Respuesta de Google no contiene credential:", response);
-      onError("No se recibió credencial de Google");
     }
-  }, [handleGoogleAuth, additionalData, onSuccess, onError]);
+  }, [handleGoogleAuth, additionalData]);
 
   // Cargar el script de Google
   useEffect(() => {
@@ -85,7 +67,6 @@ const GoogleAuthButton = ({
       };
       script.onerror = (error) => {
         console.error('Error cargando el script de Google API:', error);
-        onError("Error cargando la API de Google");
         redirectToGoogleAuth(); // Si falla la carga del script, redirigir directamente
       };
       document.head.appendChild(script);
@@ -99,7 +80,7 @@ const GoogleAuthButton = ({
         window.google.accounts.id.cancel();
       }
     };
-  }, [onError]);
+  }, []);
 
   // Inicializar la API de Google cuando el script está cargado
   useEffect(() => {
@@ -129,15 +110,13 @@ const GoogleAuthButton = ({
       });
     } catch (error) {
       console.error('Error al renderizar botón de Google:', error);
-      onError("Error al renderizar el botón de Google");
       redirectToGoogleAuth(); // Si falla el renderizado, redirigir
     }
-  }, [variant, onError]);
+  }, [variant]);
 
   const initializeGoogleAuth = useCallback(() => {
     if (!window.google?.accounts?.id) {
       console.error('API de Google no disponible');
-      onError("API de Google no disponible");
       redirectToGoogleAuth(); // Si la API no está disponible, redirigir
       return;
     }
@@ -146,7 +125,6 @@ const GoogleAuthButton = ({
     
     if (!client_id) {
       console.error('No se encontró Google Client ID');
-      onError("No se encontró configuración para Google Auth");
       return;
     }
   
@@ -165,28 +143,21 @@ const GoogleAuthButton = ({
       window.google.accounts.id.prompt();
     } catch (error) {
       console.error('Error inicializando Google Sign-In:', error);
-      onError("Error inicializando Google Sign-In");
       redirectToGoogleAuth(); // Si falla la inicialización, redirigir
     }
-  }, [handleGoogleResponse, onError]);
+  }, [handleGoogleResponse]);
   
   // Función para redirección directa a Google Auth (sin popup)
   const redirectToGoogleAuth = () => {
     const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!client_id) {
       console.error('No se encontró Google Client ID');
-      onError("No se encontró configuración para Google Auth");
       return;
     }
     
     // Guardar la URL actual para redirigir de vuelta después de la autenticación
     const currentPath = encodeURIComponent(window.location.pathname);
     sessionStorage.setItem('googleAuthRedirect', currentPath);
-    
-    // Guardar datos adicionales para el flujo de auth
-    if (Object.keys(additionalData).length > 0) {
-      sessionStorage.setItem('googleAuthData', JSON.stringify(additionalData));
-    }
     
     // Crear la URL de autenticación de Google
     const redirect_uri = encodeURIComponent(`${window.location.origin}/api/auth/google-callback`);
@@ -209,7 +180,7 @@ const GoogleAuthButton = ({
 
   return (
     <div className="w-full">
-      {authError && <p className="text-red-500 text-sm mb-2">{authError}</p>}
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
       <div 
         ref={googleButtonRef}
         onClick={handleContainerClick}
