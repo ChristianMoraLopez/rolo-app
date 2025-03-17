@@ -1,3 +1,5 @@
+//src\app\register\page.tsx
+
 "use client"
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ import { Mail, Lock, User as UserIcon, AlertCircle, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import GoogleAuthButton from "@/components/ui/button-google";
-import { googleAuthService } from '@/core/services/googleAuthService';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth'; // Add this import
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
@@ -29,6 +31,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { register } = useAuth();
+  const { handleGoogleAuth } = useGoogleAuth(); // Add this line to get handleGoogleAuth
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,16 +61,10 @@ export default function RegisterPage() {
     setError(null);
     
     try {
-      // Usar el servicio de Google Auth para el registro
-      const response = await googleAuthService.authenticate(credential, { location });
-      
-      // Si todo sale bien, mostramos un mensaje de éxito
-      if (response.user && response.token) {
-        toast.success('Registro con Google exitoso');
-        
-        // Redirigimos al home
-        router.push('/');
-      }
+      // Use handleGoogleAuth directly from the hook
+      await handleGoogleAuth(credential, { location });
+      toast.success('Registro con Google exitoso');
+      // The redirect will happen automatically through the useEffect in useGoogleAuth
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
