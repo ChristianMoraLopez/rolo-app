@@ -14,8 +14,10 @@ import {
 import Link from 'next/link';
 import { Mail, Lock, User as UserIcon, AlertCircle, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth'; // Importamos el hook useAuth
+import { useAuth } from '@/hooks/useAuth';
 import GoogleAuthButton from "@/components/ui/button-google";
+import { googleAuthService } from '@/core/services/googleAuthService';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,7 +27,7 @@ export default function RegisterPage() {
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { register, googleLogin: googleRegister } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +38,7 @@ export default function RegisterPage() {
       // Pass additional data (like location) to the register function
       await register(email, password, name, { location });
       
+      toast.success('Registro exitoso');
       // Redirigimos al home
       router.push('/');
     } catch (error: unknown) {
@@ -49,16 +52,21 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleRegister = async (token: string) => {
+  const handleGoogleRegister = async (credential: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Usamos la función googleLogin del contexto
-      await googleRegister(token);
+      // Usar el servicio de Google Auth para el registro
+      const response = await googleAuthService.register(credential, { location });
       
-      // Redirigimos al home
-      router.push('/');
+      // Si todo sale bien, mostramos un mensaje de éxito
+      if (response.user && response.token) {
+        toast.success('Registro con Google exitoso');
+        
+        // Redirigimos al home
+        router.push('/');
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -69,7 +77,6 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background/95 p-4">
@@ -155,7 +162,8 @@ export default function RegisterPage() {
             </div>
 
             <GoogleAuthButton 
-              onClick={handleGoogleRegister}
+              variant="register"
+              onSuccess={handleGoogleRegister}
               disabled={isLoading}
               className="w-full"
             />

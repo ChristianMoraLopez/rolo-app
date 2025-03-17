@@ -16,7 +16,7 @@ import {
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth'; // Importamos el hook useAuth
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,8 +25,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Utilizamos el hook useAuth en lugar de acceder directamente al servicio
-  const { login, googleLogin } = useAuth();
+  // Utilizamos el hook useGoogleAuth mejorado
+  const { 
+    isLoading: isGoogleLoading, 
+    handleGoogleSuccess, 
+    handleGoogleError 
+  } = useGoogleAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +38,10 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Usamos la función login del contexto que ya maneja todo el proceso
-      await login(email, password);
+      // Implementa tu lógica de login normal aquí
+      // Por ejemplo: await authService.login(email, password);
       
-      // Redirigimos al home
-      router.push('/bogotanos');
+      router.push('/dashboard');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -50,25 +53,17 @@ export default function LoginPage() {
     }
   };
 
-  // Modificamos el handler de login con Google
+  // Esta función ahora simplemente pasa el token al hook
   const handleGoogleLogin = async (token: string) => {
-    setIsLoading(true);
-    setError(null);
-    
     try {
-      // Usamos la función googleLogin del contexto que ya maneja todo el proceso
-      await googleLogin(token);
-      
-      // Redirigimos al home
-      router.push('/bogotanos');
+      await handleGoogleSuccess(token);
+      // No necesitamos hacer router.push aquí porque ya lo hace el hook
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
       } else {
         setError('Error al iniciar sesión con Google');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -93,7 +88,7 @@ export default function LoginPage() {
                   placeholder="Correo electrónico"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                 />
               </div>
@@ -106,14 +101,14 @@ export default function LoginPage() {
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                 />
               </div>
             </div>
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               className="w-full bg-gradient-to-r from-moradoprimary to-azulsecundario hover:from-moradohover hover:to-azulsechover text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
             >
               {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -141,9 +136,11 @@ export default function LoginPage() {
 
           <GoogleAuthButton 
             variant="login" 
-            isLoading={isLoading} 
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
+            isLoading={isGoogleLoading} 
+            onSuccess={handleGoogleLogin}
+            onError={handleGoogleError}
+            disabled={isLoading || isGoogleLoading}
+            className="transition-all duration-300 hover:scale-105"
           />
 
           <Button

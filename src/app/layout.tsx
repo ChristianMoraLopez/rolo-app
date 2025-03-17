@@ -8,6 +8,8 @@ import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/hooks/useAuth";
 
+
+
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({

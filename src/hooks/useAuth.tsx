@@ -1,3 +1,4 @@
+//src\hooks\useAuth.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/core/entities/types';
 import { authService } from '@/core/services/auth';
@@ -20,10 +21,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
-  register: (email: string, password: string, name: string,additionalData: AdditionalData ) => Promise<AuthResponse>;
+  register: (email: string, password: string, name: string, additionalData: AdditionalData) => Promise<AuthResponse>;
   googleLogin: (token: string) => Promise<AuthResponse>;
   logout: () => void;
   isAuthenticated: boolean;
+  setUserData: (userData: User, token: string) => void; // Añade esta línea
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -189,6 +191,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+
+  
+
   const register = async (
     email: string,
     password: string,
@@ -271,6 +276,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         googleLogin,
         logout,
         isAuthenticated: !!user,
+        setUserData 
       }}
     >
       {children}
