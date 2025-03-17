@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,13 +53,13 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleRegister = async (credential: string) => {
-    setIsLoading(true);
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsGoogleLoading(true);
     setError(null);
     
     try {
       // Usar el servicio de Google Auth para el registro
-      const response = await googleAuthService.register(credential, { location });
+      const response = await googleAuthService.authenticate(credential, { location });
       
       // Si todo sale bien, mostramos un mensaje de éxito
       if (response.user && response.token) {
@@ -74,8 +75,12 @@ export default function RegisterPage() {
         setError('Error al registrarse con Google');
       }
     } finally {
-      setIsLoading(false);
+      setIsGoogleLoading(false);
     }
+  };
+
+  const handleGoogleError = (errorMessage: string) => {
+    setError(errorMessage);
   };
 
   return (
@@ -99,7 +104,7 @@ export default function RegisterPage() {
                   placeholder="Nombre completo"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                   required
                 />
@@ -113,7 +118,7 @@ export default function RegisterPage() {
                   placeholder="Correo electrónico"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                   required
                 />
@@ -127,7 +132,7 @@ export default function RegisterPage() {
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                   required
                 />
@@ -141,14 +146,14 @@ export default function RegisterPage() {
                   placeholder="Ubicación (opcional)"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                 />
               </div>
             </div>
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               className="w-full bg-gradient-to-r from-moradoprimary to-azulsecundario hover:from-moradohover hover:to-azulsechover text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
             >
               {isLoading ? 'Registrando...' : 'Registrarse'}
@@ -161,12 +166,16 @@ export default function RegisterPage() {
               </span>
             </div>
 
-            <GoogleAuthButton 
-              variant="register"
-              onSuccess={handleGoogleRegister}
-              disabled={isLoading}
-              className="w-full"
-            />
+            
+          <GoogleAuthButton 
+            variant="register" 
+            isLoading={isGoogleLoading} 
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            disabled={isLoading || isGoogleLoading}
+            additionalData={{ location }}
+            className="transition-all duration-300 hover:scale-105"
+          />
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
