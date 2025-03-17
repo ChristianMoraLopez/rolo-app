@@ -8,6 +8,8 @@ interface GoogleAuthButtonProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  onSuccess: (token: string) => void;
+  onError: (error: string) => void;
   additionalData?: Record<string, unknown>;
 }
 

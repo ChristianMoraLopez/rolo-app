@@ -1,6 +1,7 @@
+// LoginPage.tsx 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GoogleAuthButton from "@/components/ui/button-google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import Link from 'next/link';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,12 +27,19 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Utilizamos el hook useGoogleAuth mejorado
+  // Use both hooks
+  const { login, isAuthenticated } = useAuth();
   const { 
     isLoading: isGoogleLoading, 
-    handleGoogleSuccess, 
-    handleGoogleError 
+    handleGoogleAuth
   } = useGoogleAuth();
+  
+  // Redirect when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/bogotanos');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +47,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Implementa tu lógica de login normal aquí
-      // Por ejemplo: await authService.login(email, password);
-      
-      router.push('/dashboard');
+      // Use the login method from useAuth
+      await login(email, password);
+      // No need to push to dashboard as the useEffect will handle redirection
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -53,11 +61,11 @@ export default function LoginPage() {
     }
   };
 
-  // Esta función ahora simplemente pasa el token al hook
+  // Handle Google login
   const handleGoogleLogin = async (token: string) => {
     try {
-      await handleGoogleSuccess(token);
-      // No necesitamos hacer router.push aquí porque ya lo hace el hook
+      await handleGoogleAuth(token);
+      // Redirection will be handled by the useEffect
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -89,6 +97,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading || isGoogleLoading}
+                  required
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                 />
               </div>
@@ -102,6 +111,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading || isGoogleLoading}
+                  required
                   className="pl-10 bg-background border-moradoclaro/20 focus-visible:ring-moradoprimary"
                 />
               </div>
@@ -138,7 +148,7 @@ export default function LoginPage() {
             variant="login" 
             isLoading={isGoogleLoading} 
             onSuccess={handleGoogleLogin}
-            onError={handleGoogleError}
+            onError={(err) => setError(err)}
             disabled={isLoading || isGoogleLoading}
             className="transition-all duration-300 hover:scale-105"
           />
