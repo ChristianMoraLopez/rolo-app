@@ -9,28 +9,34 @@ interface AuthResponse {
 
 export const googleAuthService = {
   /**
-   * Login with Google credential token
-   * @param credential The token received from Google Sign-In
-   * @returns Promise with user and token if successful
+   * Autenticación con Google usando credencial JWT
+   * @param credential El token JWT recibido de Google Sign-In
+   * @param additionalData Datos adicionales opcionales del usuario
+   * @returns Promise con usuario y token si es exitoso
    */
-  async login(credential: string): Promise<AuthResponse> {
+  async authenticate(credential: string, additionalData?: Record<string, unknown>): Promise<AuthResponse> {
     try {
       console.log("Enviando credential al servidor:", credential.substring(0, 20) + "...");
-      
+     
       const response = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({
+          credential: credential, // Cambiado de token a credential
+          authProvider: 'google',
+          role: 'registered',
+          ...additionalData
+        })
       });
-  
+ 
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Error del servidor:", errorData);
         throw new Error(errorData.message || 'Error en la autenticación con Google');
       }
-  
+ 
       return await response.json();
     } catch (error) {
       console.error("Error completo:", error);
@@ -40,37 +46,26 @@ export const googleAuthService = {
       throw new Error('Error en la conexión con el servidor');
     }
   },
-
+  
   /**
-   * Register with Google credential token
-   * @param credential The token received from Google Sign-In
-   * @param additionalData Optional additional user data
-   * @returns Promise with user and token if successful
+   * Verificar autenticación actual por token en cookie
+   * @returns Promise con usuario y token si hay sesión activa
    */
-  async register(credential: string, additionalData?: Record<string, unknown>): Promise<AuthResponse> {
+  async checkSession(): Promise<AuthResponse | null> {
     try {
-      const response = await fetch(`${API_URL}/auth/google/`, { // Endpoint separado para registro
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          credential, // Cambiado para mantener consistencia
-          ...additionalData,
-        }),
+      const response = await fetch(`${API_URL}/auth/session`, {
+        method: 'GET',
+        credentials: 'include', // Importante para enviar cookies
       });
-
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error en el registro con Google');
+        return null;
       }
-
+      
       return await response.json();
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Error en la conexión con el servidor');
+      console.error("Error verificando sesión:", error);
+      return null;
     }
-  },
+  }
 };

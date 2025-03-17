@@ -1,5 +1,5 @@
-// hooks/useGoogleAuth.ts
-import { useState, useCallback } from 'react';
+// hooks/useGoogleAuth.ts 
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { googleAuthService } from '@/core/services/googleAuthService';
@@ -9,9 +9,18 @@ export const useGoogleAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { setUserData } = useAuth(); // Obtén la función setUserData del contexto de Auth
+  const { setUserData, isAuthenticated } = useAuth();
 
-  const handleGoogleSuccess = useCallback(async (credential: string) => {
+  // Efecto para manejar la redirección cuando el usuario está autenticado
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      console.log('Usuario autenticado, redirigiendo...');
+      router.push('/bogotanos');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Método unificado para autenticar con Google (login o registro en un solo paso)
+  const handleGoogleAuth = useCallback(async (credential: string, additionalData?: Record<string, unknown>) => {
     if (!credential) {
       toast.error('No se recibió credencial de Google');
       return;
@@ -22,75 +31,41 @@ export const useGoogleAuth = () => {
     console.log("Credential recibido:", credential.substring(0, 20) + "...");
    
     try {
-      // Enviar el credential (ID token) de Google al backend para autenticación
-      const authResponse = await googleAuthService.login(credential);
+      // Usar un único método que maneja tanto login como registro
+      const authResponse = await googleAuthService.authenticate(credential, additionalData);
      
       if (authResponse.user && authResponse.token) {
-        // Usar la función centralizada de AuthContext para guardar datos consistentemente
+        console.log('Autenticación con Google exitosa:', {
+          user: authResponse.user.email,
+          tokenPresente: !!authResponse.token
+        });
+        
+        // Usar la función centralizada de AuthContext para guardar datos
         setUserData(authResponse.user, authResponse.token);
-       
-        toast.success('Inicio de sesión con Google exitoso');
-        router.push('/bogotanos');
+        
+        toast.success('Autenticación con Google exitosa');
+        
+        // La redirección se hará en el useEffect
         return authResponse;
       } else {
         throw new Error('Respuesta de autenticación incompleta');
       }
     } catch (err) {
-      handleGoogleAuthError(err);
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Error en la autenticación con Google';
+      
+      console.error('Error en autenticación Google:', err);
+      setError(errorMessage);
+      toast.error(errorMessage);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [router, setUserData]);
+  }, [setUserData]);
 
-  const handleGoogleError = useCallback((err: Error) => {
-    handleGoogleAuthError(err);
-  }, []);
-
-  const handleGoogleAuthError = useCallback((err: unknown) => {
-    const errorMessage = err instanceof Error
-      ? err.message
-      : 'Error en la autenticación con Google';
-   
-    console.error('Error en autenticación Google:', err);
-    setError(errorMessage);
-    toast.error(errorMessage);
-  }, []);
-
-  // Función para registro con Google
-  const handleGoogleRegister = useCallback(async (credential: string, additionalData?: Record<string, unknown>) => {
-    if (!credential) {
-      toast.error('No se recibió credencial de Google');
-      return;
-    }
-   
-    setIsLoading(true);
-    setError(null);
-   
-    try {
-      // Enviar el credential a la API de registro
-      const authResponse = await googleAuthService.register(credential, additionalData);
-     
-      if (authResponse.user && authResponse.token) {
-        // Usar la función centralizada de AuthContext
-        setUserData(authResponse.user, authResponse.token);
-       
-        toast.success('Registro con Google exitoso');
-        router.push('/dashboard');
-        return authResponse;
-      } else {
-        throw new Error('Respuesta de registro incompleta');
-      }
-    } catch (err) {
-      handleGoogleAuthError(err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [router, setUserData]);
-
-  // Método unificado para limpiar el estado de autenticación
-  const resetGoogleAuthState = useCallback(() => {
+  // Método para limpiar el estado de autenticación
+  const resetAuthState = useCallback(() => {
     setError(null);
     setIsLoading(false);
   }, []);
@@ -98,9 +73,8 @@ export const useGoogleAuth = () => {
   return {
     isLoading,
     error,
-    handleGoogleSuccess,
-    handleGoogleError,
-    handleGoogleRegister,
-    resetGoogleAuthState
+    handleGoogleAuth,
+    resetAuthState,
+    isAuthenticated 
   };
 };

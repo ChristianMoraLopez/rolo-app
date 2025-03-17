@@ -1,49 +1,51 @@
-// src/components/ui/button-google.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { FaGoogle } from "react-icons/fa";
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 interface GoogleAuthButtonProps {
   variant?: 'login' | 'register';
   isLoading?: boolean;
-  onSuccess: (token: string) => void;
-  onError?: (error: Error) => void;
   disabled?: boolean;
   className?: string;
+  additionalData?: Record<string, unknown>;
 }
 
 interface GoogleResponse {
   credential: string;
 }
 
-
 const GoogleAuthButton = ({
   variant = 'login',
-  isLoading = false,
-  onSuccess,
-  onError,
+  isLoading: externalLoading = false,
   disabled = false,
-  className = ""
+  className = "",
+  additionalData = {}
 }: GoogleAuthButtonProps) => {
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  
+  // Usar el hook unificado de autenticación con Google
+  const { handleGoogleAuth, isLoading: authLoading, error } = useGoogleAuth();
+  
+  // Combinar estado de carga externo e interno
+  const isLoading = externalLoading || authLoading;
 
   // Callback para manejar la respuesta de Google
   const handleGoogleResponse = useCallback((response: GoogleResponse | null) => {
     if (response?.credential) {
       console.log("Recibida credencial de Google:", response.credential.substring(0, 20) + "...");
       try {
-        onSuccess(response.credential);
+        // Usar el método unificado de autenticación
+        handleGoogleAuth(response.credential, additionalData);
       } catch (callbackError) {
         console.error("Error al procesar credencial de Google:", callbackError);
-        if (onError) onError(new Error("Error procesando la respuesta de Google"));
       }
     } else {
       console.error("Respuesta de Google no contiene credential:", response);
-      if (onError) onError(new Error("No se recibió credential de Google"));
     }
-  }, [onSuccess, onError]);
-  
+  }, [handleGoogleAuth, additionalData]);
 
   // Cargar el script de Google
   useEffect(() => {
@@ -63,7 +65,7 @@ const GoogleAuthButton = ({
       };
       script.onerror = (error) => {
         console.error('Error cargando el script de Google API:', error);
-        if (onError) onError(new Error('No se pudo cargar la autenticación de Google'));
+        redirectToGoogleAuth(); // Si falla la carga del script, redirigir directamente
       };
       document.head.appendChild(script);
     };
@@ -76,18 +78,44 @@ const GoogleAuthButton = ({
         window.google.accounts.id.cancel();
       }
     };
-  }, [onError]);
+  }, []);
 
   // Inicializar la API de Google cuando el script está cargado
   useEffect(() => {
     if (scriptLoaded && !isInitialized) {
       initializeGoogleAuth();
     }
-  }, [scriptLoaded, isInitialized, handleGoogleResponse]);
+  }, [scriptLoaded, isInitialized]);
 
-  const initializeGoogleAuth = () => {
+  // Renderizar botón de Google cuando el componente está montado
+  useEffect(() => {
+    if (isInitialized && googleButtonRef.current) {
+      renderGoogleButton();
+    }
+  }, [isInitialized]);
+
+  const renderGoogleButton = useCallback(() => {
+    if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+    
+    try {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: variant === 'login' ? 'continue_with' : 'signup_with',
+        shape: 'rectangular',
+        width: googleButtonRef.current.clientWidth || undefined
+      });
+    } catch (error) {
+      console.error('Error al renderizar botón de Google:', error);
+      redirectToGoogleAuth(); // Si falla el renderizado, redirigir
+    }
+  }, [variant]);
+
+  const initializeGoogleAuth = useCallback(() => {
     if (!window.google?.accounts?.id) {
       console.error('API de Google no disponible');
+      redirectToGoogleAuth(); // Si la API no está disponible, redirigir
       return;
     }
     
@@ -95,62 +123,80 @@ const GoogleAuthButton = ({
     
     if (!client_id) {
       console.error('No se encontró Google Client ID');
-      if (onError) onError(new Error('Google Client ID no configurado'));
       return;
     }
   
     try {
+      // Inicializar la API de Google
       window.google.accounts.id.initialize({
         client_id,
         callback: handleGoogleResponse,
         auto_select: false,
         cancel_on_tap_outside: true,
       });
+      
       setIsInitialized(true);
+      
+      // Intentar mostrar One Tap (pero no usar popup como fallback)
+      window.google.accounts.id.prompt();
     } catch (error) {
       console.error('Error inicializando Google Sign-In:', error);
-      if (onError && error instanceof Error) onError(error);
+      redirectToGoogleAuth(); // Si falla la inicialización, redirigir
     }
-  };
+  }, [handleGoogleResponse]);
   
-  const handleGoogleAuth = () => {
-    if (!window.google?.accounts?.id) {
-      console.error('API de Google no cargada');
-      if (onError) onError(new Error('API de Google no cargada'));
+  // Función para redirección directa a Google Auth (sin popup)
+  const redirectToGoogleAuth = () => {
+    const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!client_id) {
+      console.error('No se encontró Google Client ID');
       return;
     }
     
-    try {
-      // Cancelar cualquier prompt anterior
-      window.google.accounts.id.cancel();
-      
-      // Mostrar el prompt de Google
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          console.error('Google One Tap no se mostró:', notification.getNotDisplayedReason());
-          if (onError) onError(new Error(`Google Sign-In no se mostró: ${notification.getNotDisplayedReason()}`));
-        } else if (notification.isDismissedMoment()) {
-          console.log('Google One Tap fue descartado:', notification.getDismissedReason());
-          // No lanzar error aquí si fue descartado por el usuario
-        }
-      });
-    } catch (error) {
-      console.error('Error en Google prompt:', error);
-      if (onError && error instanceof Error) onError(error);
+    // Guardar la URL actual para redirigir de vuelta después de la autenticación
+    const currentPath = encodeURIComponent(window.location.pathname);
+    sessionStorage.setItem('googleAuthRedirect', currentPath);
+    
+    // Crear la URL de autenticación de Google
+    const redirect_uri = encodeURIComponent(`${window.location.origin}/api/auth/google-callback`);
+    const scope = encodeURIComponent('profile email');
+    const response_type = 'code'; // Usar 'code' en lugar de 'token' para el flujo seguro
+    const state = currentPath; // Pasar la ruta actual como state para recuperarla después
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&response_type=${response_type}&state=${state}`;
+    
+    // Redirigir a Google Auth
+    window.location.href = authUrl;
+  };
+
+  // Manejar clic en el contenedor cuando falla el botón de Google
+  const handleContainerClick = () => {
+    if (!isInitialized || !window.google?.accounts?.id) {
+      redirectToGoogleAuth();
     }
   };
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      disabled={isLoading || disabled || !scriptLoaded || !isInitialized}
-      onClick={handleGoogleAuth}
-      className={`flex items-center justify-center gap-3 border-moradoclaro/20 hover:bg-moradoclaro/10 hover:text-moradoprimary ${className}`}
-    >
-      <FaGoogle className="h-5 w-5" />
-      {variant === 'login' ? 'Continuar con Google' : 'Registrarse con Google'}
-    </Button>
+    <div className="w-full">
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+      <div 
+        ref={googleButtonRef}
+        onClick={handleContainerClick}
+        className={`w-full min-h-10 ${isLoading || disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
+      />
+      {!scriptLoaded && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isLoading || disabled}
+          onClick={redirectToGoogleAuth}
+          className={`flex items-center justify-center gap-3 w-full border-moradoclaro/20 hover:bg-moradoclaro/10 hover:text-moradoprimary mt-2 ${className}`}
+        >
+          <FaGoogle className="h-5 w-5" />
+          {variant === 'login' ? 'Continuar con Google' : 'Registrarse con Google'}
+        </Button>
+      )}
+    </div>
   );
 };
 
@@ -165,6 +211,8 @@ declare global {
             callback: (response: { credential: string }) => void;
             auto_select?: boolean;
             cancel_on_tap_outside?: boolean;
+            prompt_parent_id?: string;
+            context?: string;
           }) => void;
           prompt: (callback?: (notification: {
             isDisplayed: () => boolean;
