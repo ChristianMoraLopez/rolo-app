@@ -1,4 +1,3 @@
-// src/core/services/googleAuthService.ts
 import { API_URL } from '@/config/api';
 import { User } from '../entities/types';
 
@@ -17,7 +16,7 @@ export const googleAuthService = {
   async authenticate(credential: string, additionalData?: Record<string, unknown>): Promise<AuthResponse> {
     try {
       console.log("Enviando credential al servidor:", credential.substring(0, 20) + "...");
-     
+
       const response = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
         headers: {
@@ -27,17 +26,36 @@ export const googleAuthService = {
           credential: credential, // Cambiado de token a credential
           authProvider: 'google',
           role: 'registered',
-          ...additionalData
-        })
+          ...additionalData,
+        }),
       });
- 
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Error del servidor:", errorData);
-        throw new Error(errorData.message || 'Error en la autenticación con Google');
+
+        // Manejar errores específicos
+        if (errorData.error && errorData.error.includes('E11000 duplicate key error')) {
+          throw new Error('Ya existe una cuenta con este correo electrónico.');
+        } else {
+          throw new Error(errorData.message || 'Error en la autenticación con Google');
+        }
       }
- 
-      return await response.json();
+
+      const authResponse = await response.json();
+
+      // Validar que la respuesta contenga los datos necesarios
+      if (!authResponse.user || !authResponse.token) {
+        console.error("Respuesta incompleta del servidor:", authResponse);
+        throw new Error('La respuesta del servidor es incompleta');
+      }
+
+      console.log("Autenticación con Google exitosa:", {
+        user: authResponse.user.email,
+        tokenPresente: !!authResponse.token,
+      });
+
+      return authResponse;
     } catch (error) {
       console.error("Error completo:", error);
       if (error instanceof Error) {
@@ -46,7 +64,7 @@ export const googleAuthService = {
       throw new Error('Error en la conexión con el servidor');
     }
   },
-  
+
   /**
    * Verificar autenticación actual por token en cookie
    * @returns Promise con usuario y token si hay sesión activa
@@ -57,15 +75,23 @@ export const googleAuthService = {
         method: 'GET',
         credentials: 'include', // Importante para enviar cookies
       });
-      
+
       if (!response.ok) {
         return null;
       }
-      
-      return await response.json();
+
+      const sessionData = await response.json();
+
+      // Validar que la respuesta contenga los datos necesarios
+      if (!sessionData.user || !sessionData.token) {
+        console.error("Respuesta incompleta del servidor:", sessionData);
+        throw new Error('La respuesta del servidor es incompleta');
+      }
+
+      return sessionData;
     } catch (error) {
       console.error("Error verificando sesión:", error);
       return null;
     }
-  }
+  },
 };
