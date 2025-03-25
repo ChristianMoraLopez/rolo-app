@@ -1,8 +1,7 @@
-// src/app/locations/[id]/page.tsx
 'use client';
 
 import React from 'react';
-import { useEffect, useState, use} from 'react';
+import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, MapPin, Share2, Flag, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -20,10 +19,13 @@ const LocationDetailMap = dynamic(() => import('@/components/features/LocationDe
   ssr: false,
   loading: () => <p>Loading map...</p>
 });
-export default function LocationPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Type-safe unwrapping for current and future Next.js versions
-  const unwrappedParams = params instanceof Promise ? use(params) : params;
-  const id = unwrappedParams.id;
+
+interface LocationPageProps {
+  params: { id: string };
+}
+
+export default function LocationPage({ params }: LocationPageProps) {
+  const { id } = params;
 
   const { fetchLocationById, currentLocation, error } = useLocation();
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +142,7 @@ export default function LocationPage({ params }: { params: { id: string } | Prom
                     }`}
                   >
                     <Image
-                      src={image.src || image.src || ''}
+                      src={image.src || ''}
                       alt={`${currentLocation.name} - Imagen ${index + 1}`}
                       width={image.width || 800}
                       height={image.height || 600}
