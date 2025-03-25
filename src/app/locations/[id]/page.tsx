@@ -1,7 +1,8 @@
+//src\app\locations\[id]\page.tsx
 'use client';
 
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { use } from 'react';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, MapPin, Share2, Flag, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -21,11 +22,12 @@ const LocationDetailMap = dynamic(() => import('@/components/features/LocationDe
 });
 
 interface LocationPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function LocationPage({ params }: LocationPageProps) {
-  const { id } = params;
+  // Use React.use() to unwrap the params Promise
+  const { id } = use(params);
 
   const { fetchLocationById, currentLocation, error } = useLocation();
   const [isLoading, setIsLoading] = useState(true);
