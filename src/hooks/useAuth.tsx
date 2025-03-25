@@ -26,7 +26,9 @@ interface AuthContextType {
   googleLogin: (token: string) => Promise<AuthResponse>;
   logout: () => void;
   isAuthenticated: boolean;
-  setUserData: (userData: User, token: string) => void; // Añade esta línea
+  setUserData: (userData: User, token: string) => void; 
+  checkRole: (requiredRole: string) => boolean; 
+  protectRoute: (requiredRole: string, redirectPath?: string) => boolean; 
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -267,6 +269,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Función para verificar roles
+  const checkRole = (requiredRole: string): boolean => {
+    if (!user) return false;
+    return user.role === requiredRole;
+  };
+
+  // Función para proteger rutas basadas en roles
+  const protectRoute = (requiredRole: string, redirectPath: string = '/'): boolean => {
+    if (!checkRole(requiredRole)) {
+      toast.warning('No tienes permisos para acceder a esta página');
+      router.push(redirectPath);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -277,7 +295,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         googleLogin,
         logout,
         isAuthenticated: !!user,
-        setUserData 
+        setUserData,
+        checkRole, 
+        protectRoute 
       }}
     >
       {children}
