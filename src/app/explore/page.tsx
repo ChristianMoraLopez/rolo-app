@@ -1,37 +1,47 @@
-"use client"
-import React, { useState } from 'react';
+//src\app\explore\page.tsx
+'use client';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Heart, Share2, Filter, Star } from 'lucide-react';
-import { mockLocations } from '@/infrastructure/mocks/data';
-import { SearchBar } from '@/components/features/Searchbar';
+import { Heart, Share2, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { LocationType } from '@/core/entities/locationType';
+import { useLocation } from '@/hooks/useLocations';
+import { SearchBar } from '@/components/features/Searchbar';
 
 export default function ExplorePage() {
-  const [filteredLocations, setFilteredLocations] = useState(mockLocations);
+  const { locations, loading, error } = useLocation();
+  
+  // State management for locations, filtering, and favorites
+  const [filteredLocations, setFilteredLocations] = useState<LocationType[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Update filtered locations when locations change
+  useEffect(() => {
+    setFilteredLocations(locations);
+  }, [locations]);
+
+  // Search functionality
   const handleSearch = (query: string) => {
     const lowercaseQuery = query.toLowerCase();
-    const filtered = mockLocations.filter(location => {
-      return (
-        location.name.toLowerCase().includes(lowercaseQuery) ||
-        location.sensations.some(sensation => 
-          sensation.toLowerCase().includes(lowercaseQuery)
-        ) ||
-        location.smells.some(smell => 
-          smell.toLowerCase().includes(lowercaseQuery)
-        ) ||
-        location.description.toLowerCase().includes(lowercaseQuery)
-      );
-    });
+    const filtered = locations.filter(location => 
+      location.name.toLowerCase().includes(lowercaseQuery) ||
+      (Array.isArray(location.sensations) && location.sensations.some((sensation: string) => 
+        sensation.toLowerCase().includes(lowercaseQuery)
+      )) ||
+      (Array.isArray(location.smells) && location.smells.some((smell: string) => 
+        smell.toLowerCase().includes(lowercaseQuery)
+      )) ||
+      location.description.toLowerCase().includes(lowercaseQuery)
+    );
     setFilteredLocations(filtered);
   };
 
+  // Favorite toggle functionality
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     setFavorites(prev => 
@@ -39,30 +49,42 @@ export default function ExplorePage() {
     );
   };
 
-  interface Location {
-    id: string;
-    name: string;
-    description: string;
-  }
-  
-  const handleShare = async (location: Location, e: React.MouseEvent) => {
+  // Share location functionality
+  const handleShare = async (location: LocationType, e: React.MouseEvent) => {
     e.preventDefault();
     try {
       await navigator.share({
         title: location.name,
         text: location.description,
-        url: `/locations/${location.id}`,
+        url: `/locations/${location._id}`,
       });
     } catch (error) {
       console.log('Error sharing:', error);
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-muted-foreground">Cargando lugares...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-red-500">Error al cargar lugares: {error.message}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/95 to-background">
-      
-
       <div className="container mx-auto px-4 py-12">
+        {/* Page Title */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,6 +98,7 @@ export default function ExplorePage() {
           </p>
         </motion.div>
 
+        {/* Search and Filter Section */}
         <div className="relative mb-12">
           <SearchBar 
             onSearch={handleSearch}
@@ -89,6 +112,7 @@ export default function ExplorePage() {
           </button>
         </div>
 
+        {/* Filters Dropdown */}
         {showFilters && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
@@ -113,112 +137,99 @@ export default function ExplorePage() {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredLocations.map((location, index) => (
-            <motion.div
-              key={location.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Link href={`/locations/${location.id}`}>
-                <Card className="group h-full hover:shadow-2xl transition-all duration-500 border-azulclaro/20 overflow-hidden bg-white/50 backdrop-blur-md">
-                  <CardHeader className="p-0">
-                    <div className="aspect-video relative overflow-hidden rounded-t-lg">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                      <Image
-                        src={location.images[0].src}
-                        alt={location.name}
-                        width={location.images[0].width}
-                        height={location.images[0].height}
-                        className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute top-4 right-4 z-20 flex gap-2">
-                        <button 
-                          onClick={(e) => toggleFavorite(location.id, e)}
-                          className="p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors"
-                        >
-                          <Heart 
-                            className={`w-5 h-5 ${
-                              favorites.includes(location.id) 
-                                ? 'text-rojoprimary fill-rojoprimary' 
-                                : 'text-white'
-                            }`} 
-                          />
-                        </button>
-                        <button 
-                          onClick={(e) => handleShare(location, e)}
-                          className="p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors"
-                        >
-                          <Share2 className="w-5 h-5 text-white" />
-                        </button>
+        {/* Location Cards Grid */}
+        {filteredLocations.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No se encontraron lugares que coincidan con la búsqueda
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredLocations.map((location, index) => (
+              <motion.div
+                key={location._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Link href={`/locations/${location._id}`}>
+                  <Card className="group h-full hover:shadow-2xl transition-all duration-500 border-azulclaro/20 overflow-hidden bg-white/50 backdrop-blur-md">
+                    {/* Location Card Header with Image */}
+                    <CardHeader className="p-0">
+                      <div className="aspect-video relative overflow-hidden rounded-t-lg">
+                        {location.images.length > 0 && (
+                          <>
+                            <Image
+                              src={location.images[0].src}
+                              alt={location.name}
+                              width={location.images[0].width}
+                              height={location.images[0].height}
+                              className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
+                            />
+                            {/* Favorite and Share Buttons */}
+                            <div className="absolute top-4 right-4 z-20 flex gap-2">
+                              <button 
+                                onClick={(e) => toggleFavorite(location._id, e)}
+                                className="p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors"
+                              >
+                                <Heart 
+                                  className={`w-5 h-5 ${
+                                    favorites.includes(location._id) 
+                                      ? 'text-rojoprimary fill-rojoprimary' 
+                                      : 'text-white'
+                                  }`} 
+                                />
+                              </button>
+                              <button 
+                                onClick={(e) => handleShare(location, e)}
+                                className="p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors"
+                              >
+                                <Share2 className="w-5 h-5 text-white" />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="absolute bottom-4 left-4 z-20">
-                        <div className="flex items-center text-white mb-2">
-                          <MapPin className="w-5 h-5 mr-2" />
-                          <span className="text-lg font-semibold">{location.name}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 text-azulsecundario mr-1" />
-                          <span className="text-sm text-white/90">4.8</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <p className="text-muted-foreground mb-4 line-clamp-2 group-hover:line-clamp-none transition-all duration-300">
-                      {location.description}
-                    </p>
-                    
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        {location.sensations.map(sensation => (
-                          <Badge 
-                            key={sensation}
-                            variant="secondary"
-                            className="bg-gradient-to-r from-azulprimary/10 to-azulsecundario/10 text-azulprimary px-3 py-1 rounded-full"
-                          >
-                            {sensation}
-                          </Badge>
-                        ))}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {location.smells.map(smell => (
-                          <Badge 
-                            key={smell}
-                            variant="secondary"
-                            className="bg-gradient-to-r from-verdeprimary/10 to-verdelight/10 text-verdeprimary px-3 py-1 rounded-full"
-                          >
-                            {smell}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                    </CardHeader>
 
-                    {location.comments.length > 0 && (
-                      <div className="border-t border-azulclaro/20 pt-4 mt-6">
-                        <p className="text-sm text-muted-foreground italic">
-                          &quot;{location.comments[0].content}&quot;
-                        </p>
-                        <div className="flex items-center mt-2">
-                          <div className="w-8 h-8 rounded-full bg-azulprimary/10 flex items-center justify-center mr-2">
-                            <span className="text-sm text-azulprimary font-medium">
-                              {location.comments[0].user.name.charAt(0)}
-                            </span>
-                          </div>
-                          <span className="text-sm text-azulprimary">
-                            {location.comments[0].user.name}
-                          </span>
+                    {/* Location Card Content */}
+                    <CardContent className="p-6">
+                      <p className="text-muted-foreground mb-4 line-clamp-2">
+                        {location.description}
+                      </p>
+                      
+                      {/* Sensations and Smells Badges */}
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {location.sensations.map((sensation: string) => (
+                            <Badge 
+                              key={sensation}
+                              variant="secondary"
+                              className="bg-gradient-to-r from-azulprimary/10 to-azulsecundario/10 text-azulprimary px-3 py-1 rounded-full"
+                            >
+                              {sensation}
+                            </Badge>
+                          ))}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {location.smells.map((smell: string) => (
+                            <Badge 
+                              key={smell}
+                              variant="secondary"
+                              className="bg-gradient-to-r from-verdeprimary/10 to-verdelight/10 text-verdeprimary px-3 py-1 rounded-full"
+                            >
+                              {smell}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,51 +1,88 @@
 // src/components/features/LocationDetailMap.tsx
 'use client';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { Location } from '@/core/entities/types';
+import React from 'react';
+import { 
+  GoogleMap, 
+  Marker, 
+  useJsApiLoader,
+  InfoWindow
+} from '@react-google-maps/api';
+import { AlertCircle } from 'lucide-react';
+import { LocationType } from '@/core/entities/locationType';
 
 
 interface LocationDetailMapProps {
-  location: Location;
+  location: LocationType;
 }
 
-const CustomMarker = L.divIcon({
-  html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-azulprimary">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-    <circle cx="12" cy="10" r="3"></circle>
-  </svg>`,
-  className: 'custom-marker-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 24],
-  popupAnchor: [0, -24],
-});
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+  borderRadius: '0.5rem'
+};
 
 export default function LocationDetailMap({ location }: LocationDetailMapProps) {
-  const position: [number, number] = [location.latitude, location.longitude];
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: ['places']
+  });
+
+  const position = {
+    lat: location.latitude,
+    lng: location.longitude
+  };
+
+  // Manejo de errores de carga
+  if (loadError) {
+    console.error('Maps load error:', loadError);
+    return (
+      <div className="flex items-center justify-center h-full bg-red-50 text-red-600 p-4 rounded-lg">
+        <AlertCircle className="mr-2" />
+        Error cargando Google Maps. Verifica tu configuración.
+      </div>
+    );
+  }
+
+  // Estado de carga
+  if (!isLoaded) {
+    return (
+      <div className="h-full bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+        Cargando mapa...
+      </div>
+    );
+  }
 
   return (
-    <MapContainer 
-      center={position} 
-      zoom={15} 
-      style={{ height: '100%', width: '100%' }}
-      zoomControl={false}
-      scrollWheelZoom={false}
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={position}
+      zoom={15}
+      options={{
+        disableDefaultUI: true,
+        scrollwheel: false
+      }}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
-      <Marker position={position} icon={CustomMarker}>
-        <Popup>
-          <div className="text-center">
+      <Marker 
+        position={position}
+        icon={{
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#1D4ED8", // Azul primario
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "white"
+        }}
+      >
+        {/* Información del marcador */}
+        <InfoWindow position={position}>
+          <div className="text-center p-2">
             <strong className="block mb-1">{location.name}</strong>
             <span className="text-sm text-muted-foreground">
               {location.sensations.join(', ')}
             </span>
           </div>
-        </Popup>
+        </InfoWindow>
       </Marker>
-    </MapContainer>
+    </GoogleMap>
   );
 }

@@ -1,31 +1,98 @@
 // src/app/locations/[id]/page.tsx
 'use client';
 
-import { use } from 'react';
+import React from 'react';
+import { useEffect, useState, use} from 'react';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, MapPin, Share2, Flag, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { mockLocations } from '@/infrastructure/mocks/data';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CommentSection } from '@/components/features/CommentSection';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { useLocation } from '@/hooks/useLocations';
+import { getCreatorName } from '@/core/entities/locationType';
+import { mapLocationCommentToComment } from '@/core/entities/commentsTypes';
 
 const LocationDetailMap = dynamic(() => import('@/components/features/LocationDetailMap'), { 
-  ssr: false 
+  ssr: false,
+  loading: () => <p>Loading map...</p>
 });
+export default function LocationPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
+  // Type-safe unwrapping for current and future Next.js versions
+  const unwrappedParams = params instanceof Promise ? use(params) : params;
+  const id = unwrappedParams.id;
 
-export default function LocationPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const location = mockLocations.find(loc => loc.id === resolvedParams.id);
+  const { fetchLocationById, currentLocation, error } = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!location) {
+  useEffect(() => {
+    const loadLocationData = async () => {
+      setIsLoading(true);
+      try {
+        await fetchLocationById(id);
+      } catch (err) {
+        console.error("Error loading location:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLocationData();
+  }, [id, fetchLocationById]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-xl">Cargando información...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-rojoprimary">
+          Error al cargar la ubicación: {error.message}
+        </div>
+      </div>
+    );
+  }
+
+  // Función para procesar strings de arrays JSON
+  function processArrayString(input: string[]): string[] {
+    try {
+      // Si el input es un array con un solo elemento que parece ser un string JSON
+      if (input.length === 1 && typeof input[0] === 'string') {
+        // Intenta parsear directamente ese string
+        const parsedArray = JSON.parse(input[0]);
+        
+        // Si el resultado es un array, devuélvelo
+        if (Array.isArray(parsedArray)) {
+          return parsedArray;
+        }
+      }
+      
+      // Si el parsing inicial falla, intenta el método original
+      const jsonString = input.join(""); 
+      const parsedArray = JSON.parse(jsonString);
+      
+      // Devolver todos los elementos si es un array
+      return Array.isArray(parsedArray) ? parsedArray : input;
+    } catch (error) {
+      console.error("Error parsing JSON string:", error);
+      return input;
+    }
+  }
+
+  if (!currentLocation) {
     notFound();
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat('es-CO', {
       year: 'numeric',
       month: 'long',
@@ -46,26 +113,26 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">{location.name}</h1>
+            <h1 className="text-3xl font-bold mb-2">{currentLocation.name}</h1>
             <div className="flex items-center gap-4 text-muted-foreground">
               <span className="flex items-center">
                 <MapPin className="w-4 h-4 mr-1" />
-                Bogotá
+                {currentLocation.name || 'Bogotá'}
               </span>
               <span>•</span>
               <span className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {formatDate(location.createdAt)}
-              </span>
+                  <Clock className="w-4 h-4 mr-1" />
+                  {formatDate(new Date(currentLocation.createdAt).toString())}
+                </span>
               <span>•</span>
-              <span>Por {location.createdBy.name}</span>
+              <span>Por {getCreatorName(currentLocation.createdBy)}</span>
             </div>
           </div>
 
           <Card className="mb-8">
             <CardContent className="p-0">
               <div className="grid grid-cols-2 gap-1">
-                {location.images.map((image, index) => (
+                {currentLocation.images && currentLocation.images.map((image, index) => (
                   <div 
                     key={index}
                     className={`aspect-video relative ${
@@ -73,10 +140,10 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
                     }`}
                   >
                     <Image
-                      src={image.src}
-                      alt={`${location.name} - Imagen ${index + 1}`}
-                      width={image.width}
-                      height={image.height}
+                      src={image.src || image.src || ''}
+                      alt={`${currentLocation.name} - Imagen ${index + 1}`}
+                      width={image.width || 800}
+                      height={image.height || 600}
                       className="object-cover w-full h-full"
                     />
                   </div>
@@ -99,45 +166,54 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
           <Card className="mb-8">
             <CardContent className="p-6">
               <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="font-semibold mb-2">Sensaciones</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {location.sensations.map(sensation => (
-                      <Badge 
-                        key={sensation}
-                        variant="secondary"
-                        className="bg-azulsecundario/20 text-azulsecundario"
-                      >
-                        {sensation}
-                      </Badge>
-                    ))}
-                  </div>
+                <div className="space-y-2 border-r border-gray-100 pr-4">
+                  <h3 className="text-sm font-semibold text-verdeprimary mb-2">Olores</h3>
+                  {currentLocation.smells && (
+                    <div className="flex flex-col space-y-2">
+                      {processArrayString(currentLocation.smells).map((smell: string, index: number) => (
+                        <Badge 
+                          key={index}
+                          variant="secondary"
+                          className="bg-verdeprimary/10 text-verdeprimary text-xs self-start"
+                        >
+                          {smell}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Aromas</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {location.smells.map(smell => (
-                      <Badge 
-                        key={smell}
-                        variant="secondary"
-                        className="bg-verdeprimario/20 text-verdeprimario"
-                      >
-                        {smell}
-                      </Badge>
-                    ))}
-                  </div>
+                <div className="space-y-2 pl-4">
+                  <h3 className="text-sm font-semibold text-azulprimary mb-2">Sensaciones</h3>
+                  {currentLocation.sensations && (
+                    <div className="flex flex-col space-y-2">
+                      {processArrayString(currentLocation.sensations).map((sensation: string, index: number) => (
+                        <Badge 
+                          key={index}
+                          variant="secondary"
+                          className="bg-azulprimary/10 text-azulprimary text-xs self-start"
+                        >
+                          {sensation}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               
-              <p className="text-lg mb-6">{location.description}</p>
+              <p className="text-lg mb-6">{currentLocation.description}</p>
               
               <div className="h-96 rounded-lg overflow-hidden">
-                <LocationDetailMap location={location} />
+                <LocationDetailMap location={currentLocation} />
               </div>
             </CardContent>
           </Card>
 
-          <CommentSection comments={location.comments} locationId={location.id} />
+          <CommentSection
+              comments={currentLocation.commentsList.map((comment) => 
+                mapLocationCommentToComment(comment, currentLocation._id)
+              ) || []}
+              locationId={currentLocation._id}
+            />
         </div>
       </div>
     </div>

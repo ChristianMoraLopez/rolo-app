@@ -4,6 +4,9 @@ export type AuthProvider = 'email' | 'google';
 
 export type Role = 'visitor' | 'registered' | 'subscriber' | 'admin';
 
+
+
+
 export interface User {
   _id: string;
   name: string;
@@ -17,19 +20,6 @@ export interface User {
   createdAt: Date;
 }
 
-export interface Location {
-  id: string;
-  name: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  sensations: string[];
-  smells: string[];
-  images: { src: string; width: number; height: number }[];
-  createdAt: Date;
-  createdBy: User;
-  comments: Comment[];
-}
 
 export interface Comment {
   id: string;
